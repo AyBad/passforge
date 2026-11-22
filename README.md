@@ -12,6 +12,7 @@ Application pour générer, enregistrer et consulter des mots de passe, **100 % 
 - Liste des mots de passe protégée par code PIN (4–6 chiffres) ou empreinte / visage (Android, biométrie forte), demandés à chaque ouverture de la liste, recherche, affichage, copie, modification (manuelle ou par génération), suppression
 - Export chiffré (sélection) et import des fichiers `.pfg`
 - Profil (prénom, nom), écrans de bienvenue, tutoriel, 8 langues (FR, EN, AR, ES, DE, IT, PT, ZH), thème clair/sombre/système
+- Demande d'avis Google Play rare (après 3 jours et 3 mots de passe enregistrés, puis au plus tous les 4 mois, 3 fois maximum, jamais juste après une publicité) + « Noter l'application » dans le menu
 - Publicités AdMob (formulaire de consentement RGPD de Google) et mode Pro (achat Google Play) qui les supprime
 
 ## Sécurité

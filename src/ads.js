@@ -81,7 +81,7 @@ export async function prepareInterstitial() {
   try { await initAds(); if (!ready) return; await admob.prepareInterstitial({ adId: TEST.interstitial, isTesting: !REAL }); interReady = true; } catch (e) { interReady = false; }
 }
 
-/** full-screen ad after a password is saved: every 2nd save, at most once every 90 s */
+/** full-screen ad after a password is saved: every 2nd save, at most once every 90 s. Returns true when an ad was shown */
 export async function afterSave() {
   saves++;
   if (saves % 2 || Date.now() - lastInter < 90000 || !(await adsAllowed())) return;
@@ -94,7 +94,7 @@ export async function afterSave() {
         interReady = false;
         await admob.showInterstitial();
         prepareInterstitial();
-        return;
+        return true;
       } catch (e) { interReady = false; }
     }
   }
@@ -109,4 +109,5 @@ export async function afterSave() {
     const iv = setInterval(() => { n--; if (n > 0) btn.textContent = n; else { clearInterval(iv); btn.disabled = false; btn.textContent = '✕'; } }, 1000);
     btn.onclick = () => { back.remove(); resolve(); };
   });
+  return true;
 }

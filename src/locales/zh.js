@@ -91,5 +91,6 @@ export default {
   proError: "购买未完成，请稍后再试。",
   proNothing: "此 Google 账号下未找到专业版购买记录。",
   t6Title: "或者使用密码短语",
-  t6Text: "几个容易记住的单词，例如 Sun-Piano-Garden42：选择单词数量、语言和分隔符。"
+  t6Text: "几个容易记住的单词，例如 Sun-Piano-Garden42：选择单词数量、语言和分隔符。",
+  rateApp: "为应用评分"
 };

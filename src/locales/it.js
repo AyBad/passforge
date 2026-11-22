@@ -91,5 +91,6 @@ export default {
   proError: "L’acquisto non è andato a buon fine. Riprova più tardi.",
   proNothing: "Nessun acquisto Pro trovato su questo account Google.",
   t6Title: "Oppure una passphrase",
-  t6Text: "Più parole facili da ricordare, come Sole-Piano-Giardino42: scegli il numero di parole, la lingua e il separatore."
+  t6Text: "Più parole facili da ricordare, come Sole-Piano-Giardino42: scegli il numero di parole, la lingua e il separatore.",
+  rateApp: "Valuta l’app"
 };

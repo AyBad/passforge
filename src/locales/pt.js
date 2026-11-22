@@ -91,5 +91,6 @@ export default {
   proError: "A compra não foi concluída. Tente mais tarde.",
   proNothing: "Nenhuma compra Pro encontrada nesta conta Google.",
   t6Title: "Ou uma frase-passe",
-  t6Text: "Várias palavras fáceis de memorizar, como Sol-Piano-Jardim42: escolha o número de palavras, o idioma e o separador."
+  t6Text: "Várias palavras fáceis de memorizar, como Sol-Piano-Jardim42: escolha o número de palavras, o idioma e o separador.",
+  rateApp: "Avaliar a app"
 };

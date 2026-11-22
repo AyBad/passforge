@@ -91,5 +91,6 @@ export default {
   proError: "The purchase did not go through. Try again later.",
   proNothing: "No Pro purchase found on this Google account.",
   t6Title: "Or a passphrase",
-  t6Text: "Several easy-to-remember words, like Sun-Piano-Garden42: choose the number of words, their language and the separator."
+  t6Text: "Several easy-to-remember words, like Sun-Piano-Garden42: choose the number of words, their language and the separator.",
+  rateApp: "Rate the app"
 };

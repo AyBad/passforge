@@ -91,5 +91,6 @@ export default {
   proError: "La compra no se ha completado. Inténtalo más tarde.",
   proNothing: "No se ha encontrado ninguna compra Pro en esta cuenta de Google.",
   t6Title: "O una frase de contraseña",
-  t6Text: "Varias palabras fáciles de recordar, como Sol-Piano-Jardin42: elige el número de palabras, su idioma y el separador."
+  t6Text: "Varias palabras fáciles de recordar, como Sol-Piano-Jardin42: elige el número de palabras, su idioma y el separador.",
+  rateApp: "Valorar la app"
 };

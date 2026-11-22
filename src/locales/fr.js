@@ -91,5 +91,6 @@ export default {
   proError: "L’achat n’a pas abouti. Réessayez plus tard.",
   proNothing: "Aucun achat Pro trouvé sur ce compte Google.",
   t6Title: "Ou une phrase de passe",
-  t6Text: "Plusieurs mots faciles à retenir, comme Soleil-Piano-Jardin42 : choisissez le nombre de mots, leur langue et le séparateur."
+  t6Text: "Plusieurs mots faciles à retenir, comme Soleil-Piano-Jardin42 : choisissez le nombre de mots, leur langue et le séparateur.",
+  rateApp: "Noter l’application"
 };

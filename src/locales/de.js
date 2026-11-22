@@ -91,5 +91,6 @@ export default {
   proError: "Der Kauf wurde nicht abgeschlossen. Versuche es später erneut.",
   proNothing: "Kein Pro-Kauf für dieses Google-Konto gefunden.",
   t6Title: "Oder eine Passphrase",
-  t6Text: "Mehrere leicht zu merkende Wörter wie Sonne-Klavier-Garten42: Wähle Anzahl, Sprache und Trennzeichen."
+  t6Text: "Mehrere leicht zu merkende Wörter wie Sonne-Klavier-Garten42: Wähle Anzahl, Sprache und Trennzeichen.",
+  rateApp: "App bewerten"
 };

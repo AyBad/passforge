@@ -7,6 +7,7 @@ import { generate, strength, entropy, defaultOptions, PRESETS, ALL_SPECIALS, DEF
 import { $, $$, esc, ICON, modal, confirmBox, alertBox, toast, busy, pinPad, slides } from './ui.js';
 import { showBanner, hideBanner, removeAdsForPro, afterSave, prepareInterstitial } from './ads.js';
 import * as billing from './billing.js';
+import { noteFirstUse, maybeAskReview, openStorePage } from './review.js';
 import { native, copy, saveFile, shareFile, pickFile, inExternal, bio } from './device.js';
 
 const VERSION = __APP_VERSION__;
@@ -29,6 +30,7 @@ async function start() {
   opt.phrase = Object.assign(defaultOptions().phrase, (S.gen && S.gen.phrase) || {});
   setupSystem();
   if ('serviceWorker' in navigator && !native && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(() => { });
+  noteFirstUse();
   if (!S.onboarded) await onboarding();
   home();
   prepareInterstitial();
@@ -63,8 +65,7 @@ function setupSystem() {
       const m = $$('.modal-back').pop(); if (m) { m.click(); return; }
       if ($('.slides')) return;
       if ($('.drawer.open')) { closeDrawer(); return; }
-      if (screen === 'regen') { editTarget = null; openVault(); return; }
-      if (screen !== 'home') { home(); return; }
+      if (screen !== 'home') { const nav = $('.bar .nav'); if (nav) nav.click(); else home(); return; }
       App.minimizeApp();
     });
   }
@@ -197,14 +198,29 @@ function openDrawer() {
         <hr>
         <button data-a="tuto">${ICON.book}<span>${t('tutorial')}</span></button>
         <button data-a="about">${ICON.info}<span>${t('about')}</span></button>
+        ${native ? `<button data-a="rate">${ICON.heart}<span>${t('rateApp')}</span></button>` : ''}
       </nav><p class="dr-foot">PassForge ${VERSION}</p></div>`;
   requestAnimationFrame(() => d.classList.add('open'));
   d.onclick = (e) => { if (e.target === d) closeDrawer(); };
   $$('nav button', d).forEach(b => b.onclick = async () => {
     const a = b.dataset.a;
+    if (a === 'rate') { openStorePage(); return; }
+    // back from the chosen page → the page where the menu was opened, with the menu shown again
+    const origin = { settings: settingsScreen, pro: proScreen, about: aboutScreen }[screen] || home;
+    menuReturn = a === 'home' ? null : origin;
+    pageBack = null;
     closeDrawer();
     ({ home, vault: openVault, settings: settingsScreen, pro: proScreen, tuto: tutorial, about: aboutScreen })[a]();
   });
+}
+let menuReturn = null; // page to show again (with the menu open) when coming back from a menu entry
+let pageBack = null;   // set when a page is opened from another page (e.g. Pro from the settings)
+async function goBack() {
+  if (pageBack) { const f = pageBack; pageBack = null; return f(); }
+  const f = menuReturn; menuReturn = null;
+  if (!f) return home();
+  await f();
+  openDrawer();
 }
 function closeDrawer() { const d = $('.drawer'); if (d) d.classList.remove('open'); }
 
@@ -277,7 +293,7 @@ function home() {
       <button class="btn primary big gen">${ICON.refresh}<span>${t('generate')}</span></button>
       <div class="results"></div>`
   });
-  if (!editTarget) $('.vault-btn').onclick = openVault;
+  if (!editTarget) $('.vault-btn').onclick = () => { menuReturn = null; pageBack = null; openVault(); };
 
   const sync = () => {
     const P = isPhrase();
@@ -425,7 +441,8 @@ function saveDialog(value, bits = null) {
     home();
     const n = await vault.count();
     if (n === 1 && !(await vault.hasPin())) toast(t('firstSavedNoPin'));
-    afterSave();
+    // never the rating window right after an ad
+    if (!(await afterSave())) maybeAskReview();
   };
   $('.o', m.el).onclick = go;
   nm.onkeydown = (e) => { if (e.key === 'Enter') go(); };
@@ -461,7 +478,7 @@ async function vaultScreen() {
   const fmt = new Intl.DateTimeFormat(lang(), { dateStyle: 'medium' });
 
   shell({
-    title: t('myPasswords'), back: home,
+    title: t('myPasswords'), back: goBack,
     actions: `<button class="icon-btn v-sel" aria-label="${t('select')}">${ICON.select}</button>
       <button class="icon-btn v-more" aria-label="${t('more')}">${ICON.dots}</button>`,
     body: `<div class="search">${ICON.search}<input type="search" placeholder="${t('search')}" class="q"></div>
@@ -630,12 +647,13 @@ async function exportFlow(entries) {
 /* ================= settings ================= */
 async function settingsScreen() {
   screen = 'settings';
+  if (pageBack === settingsScreen) pageBack = null;
   hideBanner();
   const pin = await vault.hasPin();
   const bst = await bio.status();
   const p = S.profile || {};
   shell({
-    title: t('settings'), back: home,
+    title: t('settings'), back: goBack,
     body: `
       <h3 class="sec">${t('profile')}</h3>
       <section class="card rows">
@@ -703,8 +721,8 @@ async function settingsScreen() {
   $('.clip').onchange = async (e) => { S = await store.saveSettings({ clipClear: +e.target.value }); };
   $('.r-lang').onclick = languageDialog;
   $$('.theme button').forEach(b => b.onclick = async () => { S = await store.saveSettings({ theme: b.dataset.t }); applyTheme(); $$('.theme button').forEach(x => x.classList.toggle('on', x === b)); });
-  $('.r-pro').onclick = proScreen;
-  $('.r-vault').onclick = openVault;
+  $('.r-pro').onclick = () => { pageBack = settingsScreen; proScreen(); };
+  $('.r-vault').onclick = async () => { pageBack = settingsScreen; await openVault(); if (screen !== 'vault') pageBack = null; };
   $('.r-reset').onclick = () => resetApp(false);
 }
 
@@ -747,7 +765,7 @@ async function proScreen() {
   const prod = await billing.storeProduct(); // null → simulated purchase (APK from GitHub, iPhone)
   const price = prod ? prod.price : '2,99 €';
   shell({
-    title: t('proMode'), back: home,
+    title: t('proMode'), back: goBack,
     body: `<div class="pro-hero"><div class="pro-badge">${ICON.star}</div><h2>PassForge Pro</h2><p>${t('proText')}</p></div>
       <section class="card"><ul class="ticks">
         <li>${ICON.check}${t('proB1')}</li><li>${ICON.check}${t('proB2')}</li><li>${ICON.check}${t('proB3')}</li></ul></section>
@@ -787,14 +805,14 @@ async function tutorial() {
     { icon: ICON.download, title: t('t5Title'), text: t('t5Text'), tone: 'orange' },
     ...welcomeSlides().slice(1)
   ], { finish: t('finish') });
-  home();
+  goBack();
 }
 
 function aboutScreen() {
   screen = 'about';
   hideBanner();
   shell({
-    title: t('about'), back: home,
+    title: t('about'), back: goBack,
     body: `<div class="pro-hero"><img src="icons/icon-192.png" class="about-logo" alt=""><h2>PassForge</h2><p>${t('version')} ${VERSION}</p></div>
       <section class="card"><p>${t('aboutText')}</p>
       <ul class="ticks"><li>${ICON.wifiOff}${t('about1')}</li><li>${ICON.shield}${t('about2')}</li><li>${ICON.refresh}${t('about3')}</li><li>${ICON.lock}${t('about4')}</li></ul></section>
