@@ -125,12 +125,33 @@ async function open(blob) {
 }
 const newId = () => b64(crypto.getRandomValues(new Uint8Array(9))).replace(/[+/=]/g, '');
 
+/*
+ * Unique names: the names stay encrypted, so each entry also keeps a keyed fingerprint of its normalised name
+ * (HMAC-SHA256 with a random key of this install). It lets the app refuse a duplicate name before the PIN is entered.
+ */
+export const normName = (n) => String(n).normalize('NFC').trim().replace(/\s+/g, ' ').toLocaleLowerCase();
+let macKey = null;
+async function nameMac(name) {
+  if (!macKey) {
+    let raw = await store.get('nameKey');
+    if (!raw) { raw = b64(crypto.getRandomValues(new Uint8Array(32))); await store.set('nameKey', raw); }
+    macKey = await crypto.subtle.importKey('raw', unb64(raw), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
+  }
+  return b64(await crypto.subtle.sign('HMAC', macKey, enc.encode(normName(name))));
+}
+/** true when another entry already has this name (case and spaces ignored) */
+export async function nameTaken(name, exceptId = null) {
+  const h = await nameMac(name);
+  return ((await store.get('entries')) || []).some(e => e.nh === h && e.id !== exceptId);
+}
+
 export async function count() { return ((await store.get('entries')) || []).length; }
 
 export async function add({ name, value }) {
+  if (await nameTaken(name)) throw new Error('duplicate');
   const list = (await store.get('entries')) || [];
   const now = Date.now();
-  list.push({ id: newId(), created: now, updated: now, blob: await seal({ name, value }) });
+  list.push({ id: newId(), created: now, updated: now, nh: await nameMac(name), blob: await seal({ name, value }) });
   await store.set('entries', list);
 }
 
@@ -139,9 +160,15 @@ export async function list() {
   if (!priv) throw new Error('locked');
   const raw = (await store.get('entries')) || [];
   const out = [];
+  let migrated = false;
   for (const e of raw) {
-    try { out.push({ id: e.id, created: e.created, updated: e.updated, ...(await open(e.blob)) }); } catch (err) { console.warn('entry', err); }
+    try {
+      const d = await open(e.blob);
+      if (!e.nh) { e.nh = await nameMac(d.name); migrated = true; } // entries saved before v1.3
+      out.push({ id: e.id, created: e.created, updated: e.updated, ...d });
+    } catch (err) { console.warn('entry', err); }
   }
+  if (migrated) await store.set('entries', raw);
   return out.sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }));
 }
 
@@ -149,11 +176,14 @@ export async function update(id, { name, value }) {
   const raw = (await store.get('entries')) || [];
   const e = raw.find(x => x.id === id);
   if (!e) return;
-  e.blob = await seal({ name, value }); e.updated = Date.now();
+  if (await nameTaken(name, id)) throw new Error('duplicate');
+  e.blob = await seal({ name, value }); e.nh = await nameMac(name); e.updated = Date.now();
   await store.set('entries', raw);
 }
-export async function remove(id) {
-  await store.set('entries', ((await store.get('entries')) || []).filter(x => x.id !== id));
+export async function remove(id) { return removeMany([id]); }
+export async function removeMany(ids) {
+  const set_ = new Set(ids);
+  await store.set('entries', ((await store.get('entries')) || []).filter(x => !set_.has(x.id)));
 }
 
 /* ---- encrypted export file (.pfg), readable only with the export password ---- */
@@ -180,21 +210,28 @@ export function peekExport(text) {
   try { const f = JSON.parse(text); return f && f.app === 'PassForge' ? f : null; } catch { return null; }
 }
 
-/** adds imported entries, skipping exact duplicates (same name and password) */
+/** adds imported entries: exact duplicates (same name and password) are skipped;
+ *  a name already used by another password gets a number: "Gmail (2)" */
 export async function importEntries(items) {
   const existing = await list();
-  const seen = new Set(existing.map(e => e.name + '\u0000' + e.value));
+  const pairs = new Set(existing.map(e => normName(e.name) + '\u0000' + e.value));
+  const names = new Set(existing.map(e => normName(e.name)));
   const raw = (await store.get('entries')) || [];
-  let added = 0, skipped = 0;
+  let added = 0, skipped = 0, renamed = 0;
   for (const it of items) {
-    if (!it || typeof it.name !== 'string' || typeof it.value !== 'string') { skipped++; continue; }
-    const key = it.name + '\u0000' + it.value;
-    if (seen.has(key)) { skipped++; continue; }
-    seen.add(key);
+    if (!it || typeof it.name !== 'string' || typeof it.value !== 'string' || !it.name.trim()) { skipped++; continue; }
+    let name = it.name.trim();
+    if (pairs.has(normName(name) + '\u0000' + it.value)) { skipped++; continue; }
+    if (names.has(normName(name))) {
+      let k = 2;
+      while (names.has(normName(`${name} (${k})`))) k++;
+      name = `${name} (${k})`; renamed++;
+    }
+    names.add(normName(name)); pairs.add(normName(name) + '\u0000' + it.value);
     const now = Date.now();
-    raw.push({ id: newId(), created: it.created || now, updated: it.updated || now, blob: await seal({ name: it.name, value: it.value }) });
+    raw.push({ id: newId(), created: it.created || now, updated: it.updated || now, nh: await nameMac(name), blob: await seal({ name, value: it.value }) });
     added++;
   }
   await store.set('entries', raw);
-  return { added, skipped };
+  return { added, skipped, renamed };
 }

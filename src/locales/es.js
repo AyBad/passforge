@@ -92,5 +92,13 @@ export default {
   proNothing: "No se ha encontrado ninguna compra Pro en esta cuenta de Google.",
   t6Title: "O una frase de contraseña",
   t6Text: "Varias palabras fáciles de recordar, como Sol-Piano-Jardin42: elige el número de palabras, su idioma y el separador.",
-  rateApp: "Valorar la app"
+  rateApp: "Valorar la app",
+  nameTaken: "Este nombre ya existe: elige otro.",
+  deleteN: "Eliminar ({n})",
+  deleteManyText: "Se eliminarán definitivamente {n} contraseñas.",
+  deletedN: "{n} contraseñas eliminadas",
+  importRenamed: "{r} contraseña(s) tenían un nombre ya usado: se ha añadido un número, p. ej. «Gmail (2)».",
+  splashTag: "Tus contraseñas, creadas y guardadas en tu teléfono",
+  searchName: "Buscar por nombre",
+  nFound: "{n} resultado(s)"
 };

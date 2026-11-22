@@ -92,5 +92,13 @@ export default {
   proNothing: "No Pro purchase found on this Google account.",
   t6Title: "Or a passphrase",
   t6Text: "Several easy-to-remember words, like Sun-Piano-Garden42: choose the number of words, their language and the separator.",
-  rateApp: "Rate the app"
+  rateApp: "Rate the app",
+  nameTaken: "This name is already used: choose another one.",
+  deleteN: "Delete ({n})",
+  deleteManyText: "{n} passwords will be deleted for good.",
+  deletedN: "{n} passwords deleted",
+  importRenamed: "{r} password(s) had a name already in use: a number was added, e.g. “Gmail (2)”.",
+  splashTag: "Your passwords, forged and kept on your phone",
+  searchName: "Search by name",
+  nFound: "{n} result(s)"
 };

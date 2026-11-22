@@ -2,5 +2,9 @@
   "appId": "com.aybad.passforge",
   "appName": "PassForge",
   "webDir": "dist",
-  "android": { "allowMixedContent": false, "webContentsDebuggingEnabled": false }
+  "android": {
+    "allowMixedContent": false,
+    "webContentsDebuggingEnabled": false
+  },
+  "backgroundColor": "#3b5bfd"
 }

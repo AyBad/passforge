@@ -92,5 +92,13 @@ export default {
   proNothing: "Aucun achat Pro trouvé sur ce compte Google.",
   t6Title: "Ou une phrase de passe",
   t6Text: "Plusieurs mots faciles à retenir, comme Soleil-Piano-Jardin42 : choisissez le nombre de mots, leur langue et le séparateur.",
-  rateApp: "Noter l’application"
+  rateApp: "Noter l’application",
+  nameTaken: "Ce nom est déjà utilisé : choisissez-en un autre.",
+  deleteN: "Supprimer ({n})",
+  deleteManyText: "{n} mots de passe seront supprimés définitivement.",
+  deletedN: "{n} mots de passe supprimés",
+  importRenamed: "{r} mot(s) de passe portaient un nom déjà utilisé : un numéro a été ajouté, par ex. « Gmail (2) ».",
+  splashTag: "Vos mots de passe, forgés et gardés sur votre téléphone",
+  searchName: "Rechercher par nom",
+  nFound: "{n} résultat(s)"
 };

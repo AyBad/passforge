@@ -92,5 +92,13 @@ export default {
   proNothing: "Nenhuma compra Pro encontrada nesta conta Google.",
   t6Title: "Ou uma frase-passe",
   t6Text: "Várias palavras fáceis de memorizar, como Sol-Piano-Jardim42: escolha o número de palavras, o idioma e o separador.",
-  rateApp: "Avaliar a app"
+  rateApp: "Avaliar a app",
+  nameTaken: "Este nome já está a ser usado: escolha outro.",
+  deleteN: "Eliminar ({n})",
+  deleteManyText: "{n} palavras-passe serão eliminadas definitivamente.",
+  deletedN: "{n} palavras-passe eliminadas",
+  importRenamed: "{r} palavra(s)-passe tinham um nome já usado: foi adicionado um número, ex. «Gmail (2)».",
+  splashTag: "As suas palavras-passe, criadas e guardadas no telemóvel",
+  searchName: "Pesquisar por nome",
+  nFound: "{n} resultado(s)"
 };

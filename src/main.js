@@ -7,6 +7,7 @@ import { generate, strength, entropy, defaultOptions, PRESETS, ALL_SPECIALS, DEF
 import { $, $$, esc, ICON, modal, confirmBox, alertBox, toast, busy, pinPad, slides } from './ui.js';
 import { showBanner, hideBanner, removeAdsForPro, afterSave, prepareInterstitial } from './ads.js';
 import * as billing from './billing.js';
+import { startSplash, endSplash } from './splash.js';
 import { noteFirstUse, maybeAskReview, openStorePage } from './review.js';
 import { native, copy, saveFile, shareFile, pickFile, inExternal, bio } from './device.js';
 
@@ -23,6 +24,7 @@ const app = () => $('#app');
 async function start() {
   S = await store.settings();
   await setLang(S.lang || phoneLang());
+  startSplash(t('splashTag'));
   applyTheme();
   await vault.init();
   const d0 = defaultOptions();
@@ -31,8 +33,8 @@ async function start() {
   setupSystem();
   if ('serviceWorker' in navigator && !native && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(() => { });
   noteFirstUse();
-  if (!S.onboarded) await onboarding();
-  home();
+  if (!S.onboarded) { await endSplash(); await onboarding(); home(); }
+  else { home(); await endSplash(); }
   prepareInterstitial();
   // Google Play says whether this account owns Pro (reinstall, new phone, refund)
   billing.owned().then(async (o) => {
@@ -46,7 +48,7 @@ function applyTheme() {
   const dark = S.theme === 'dark' || (S.theme === 'system' && matchMedia('(prefers-color-scheme: dark)').matches);
   document.documentElement.dataset.theme = dark ? 'dark' : 'light';
   const m = $('meta[name=theme-color]');
-  if (m) m.content = dark ? '#0f1420' : '#ffffff';
+  if (m && !$('#splash')) m.content = dark ? '#0f1420' : '#ffffff';
 }
 matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => S && S.theme === 'system' && applyTheme());
 
@@ -425,6 +427,7 @@ function drawResults() {
 function saveDialog(value, bits = null) {
   const m = modal(`<h2>${t('savePw')}</h2>
     <label class="field"><span>${t('pwName')}</span><input class="nm" maxlength="80" placeholder="${t('pwNameHint')}" autocomplete="off"></label>
+    <p class="err-msg nm-err"></p>
     <div class="preview" dir="ltr">${esc(value)}</div>${meter(value, bits)}
     <div class="actions"><button class="btn ghost c">${t('cancel')}</button><button class="btn primary o">${t('save')}</button></div>`);
   const nm = $('.nm', m.el);
@@ -433,8 +436,11 @@ function saveDialog(value, bits = null) {
   const go = async () => {
     const name = nm.value.trim();
     if (!name) { nm.classList.add('err'); nm.focus(); return; }
+    if (await vault.nameTaken(name)) { nameError(nm, $('.nm-err', m.el)); return; }
     busy(true);
-    try { await vault.add({ name, value }); } finally { busy(false); }
+    try { await vault.add({ name, value }); }
+    catch (e) { if (e.message === 'duplicate') { nameError(nm, $('.nm-err', m.el)); return; } throw e; }
+    finally { busy(false); }
     m.close();
     results = [];
     toast(t('saved'));
@@ -446,6 +452,12 @@ function saveDialog(value, bits = null) {
   };
   $('.o', m.el).onclick = go;
   nm.onkeydown = (e) => { if (e.key === 'Enter') go(); };
+  nm.oninput = () => { nm.classList.remove('err'); $('.nm-err', m.el).textContent = ''; };
+}
+
+/** a name already used: the field is marked and the message shown under it */
+function nameError(input, msgEl) {
+  input.classList.add('err'); msgEl.textContent = t('nameTaken'); input.focus(); input.select();
 }
 
 async function replaceSaved(value) {
@@ -473,6 +485,15 @@ async function vaultScreen() {
   let items;
   try { items = await vault.list(); } catch { return home(); }
   let selecting = false, query = '';
+  const fold = (x) => String(x).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+  const matches = (e) => !query || fold(e.name).includes(query);
+  // the matching part of the name in bold colour (accent-insensitive: same length after folding for Latin letters)
+  const mark = (name) => {
+    if (!query) return esc(name);
+    const i = fold(name).indexOf(query);
+    if (i < 0 || fold(name).length !== name.length) return esc(name);
+    return esc(name.slice(0, i)) + '<mark>' + esc(name.slice(i, i + query.length)) + '</mark>' + esc(name.slice(i + query.length));
+  };
   const selected = new Set();
   const shown = new Set();
   const fmt = new Intl.DateTimeFormat(lang(), { dateStyle: 'medium' });
@@ -481,23 +502,27 @@ async function vaultScreen() {
     title: t('myPasswords'), back: goBack,
     actions: `<button class="icon-btn v-sel" aria-label="${t('select')}">${ICON.select}</button>
       <button class="icon-btn v-more" aria-label="${t('more')}">${ICON.dots}</button>`,
-    body: `<div class="search">${ICON.search}<input type="search" placeholder="${t('search')}" class="q"></div>
+    body: `<div class="search">${ICON.search}<input type="search" placeholder="${t('searchName')}" class="q" autocomplete="off"><button class="icon-btn sm q-x hide" aria-label="${t('cancel')}">${ICON.close}</button></div>
+      <p class="q-n muted small"></p>
       <div class="sel-bar hide"><button class="link s-all">${t('selectAll')}</button><span class="s-n"></span><button class="link s-cancel">${t('cancel')}</button></div>
       <div class="vlist"></div>
-      <div class="export-bar hide"><button class="btn primary big s-exp">${ICON.download}<span></span></button></div>
+      <div class="export-bar hide"><button class="btn danger big s-del">${ICON.trash}<span></span></button><button class="btn primary big s-exp">${ICON.download}<span></span></button></div>
       <button class="fab" aria-label="${t('newPw')}">${ICON.plus}</button>`,
     cls: 'vault'
   });
 
   const draw = () => {
     const list = $('.vlist');
-    const f = items.filter(e => !query || e.name.toLowerCase().includes(query));
+    const f = items.filter(matches);
+    $('.q-n').textContent = query && items.length ? t('nFound', { n: f.length }) : '';
     $('.sel-bar').classList.toggle('hide', !selecting);
     $('.export-bar').classList.toggle('hide', !selecting);
     $('.fab').classList.toggle('hide', selecting);
     $('.s-n').textContent = t('nSelected', { n: selected.size });
     $('.s-exp span').textContent = t('exportN', { n: selected.size });
     $('.s-exp').disabled = !selected.size;
+    $('.s-del span').textContent = t('deleteN', { n: selected.size });
+    $('.s-del').disabled = !selected.size;
     if (!items.length) {
       list.innerHTML = `<div class="empty">${ICON.key}<h2>${t('emptyTitle')}</h2><p>${t('emptyText')}</p>
         <button class="btn primary e-gen">${ICON.wand}<span>${t('generate')}</span></button>
@@ -507,7 +532,7 @@ async function vaultScreen() {
     }
     list.innerHTML = f.map(e => `<div class="item ${selected.has(e.id) ? 'sel' : ''}" data-id="${e.id}">
         ${selecting ? `<span class="cb">${ICON.check}</span>` : `<span class="it-ic">${esc([...e.name][0] || '?').toUpperCase()}</span>`}
-        <div class="it-main"><b>${esc(e.name)}</b>
+        <div class="it-main"><b>${mark(e.name)}</b>
           <code dir="ltr" class="${shown.has(e.id) ? 'shown' : ''}">${shown.has(e.id) ? esc(e.value) : '•'.repeat(Math.min(12, [...e.value].length))}</code>
           <small><span class="meter m-${strength(e.value)}" title="${t(strength(e.value))}"><span class="m-bar"><i></i><i></i><i></i></span></span><span>${t(strength(e.value))} · ${fmt.format(e.updated)}</span></small></div>
         ${selecting ? '' : `<div class="it-act">
@@ -543,10 +568,12 @@ async function vaultScreen() {
   const editDialog = (e) => {
     const m = modal(`<h2>${t('editManual')}</h2>
       <label class="field"><span>${t('pwName')}</span><input class="nm" maxlength="80" value="${esc(e.name)}"></label>
+      <p class="err-msg nm-err"></p>
       <label class="field"><span>${t('password')}</span><div class="pw-in"><input class="pv" dir="ltr" type="password" value="${esc(e.value)}" autocomplete="off" autocapitalize="off" spellcheck="false"><button class="icon-btn sm tg">${ICON.eye}</button></div></label>
       <div class="mt">${meter(e.value)}</div>
       <div class="actions"><button class="btn ghost c">${t('cancel')}</button><button class="btn primary o">${t('save')}</button></div>`);
     const pv = $('.pv', m.el), nm = $('.nm', m.el);
+    nm.oninput = () => { nm.classList.remove('err'); $('.nm-err', m.el).textContent = ''; };
     pv.oninput = () => $('.mt', m.el).innerHTML = meter(pv.value);
     $('.tg', m.el).onclick = () => { pv.type = pv.type === 'password' ? 'text' : 'password'; $('.tg', m.el).innerHTML = pv.type === 'password' ? ICON.eye : ICON.eyeOff; };
     $('.c', m.el).onclick = () => m.close();
@@ -554,17 +581,30 @@ async function vaultScreen() {
       const name = nm.value.trim(), value = pv.value;
       if (!name) { nm.classList.add('err'); return; }
       if (!value) { pv.classList.add('err'); return; }
-      await vault.update(e.id, { name, value });
+      try { await vault.update(e.id, { name, value }); }
+      catch (err) { if (err.message === 'duplicate') { nameError(nm, $('.nm-err', m.el)); return; } throw err; }
       Object.assign(e, { name, value, updated: Date.now() });
       items.sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }));
       m.close(); toast(t('updated')); draw();
     };
   };
 
-  $('.q').oninput = (e) => { query = e.target.value.trim().toLowerCase(); draw(); };
+  $('.q').oninput = (e) => { query = fold(e.target.value.trim()); $('.q-x').classList.toggle('hide', !e.target.value); draw(); };
+  $('.q-x').onclick = () => { $('.q').value = ''; $('.q').oninput({ target: $('.q') }); $('.q').focus(); };
   $('.v-sel').onclick = () => { if (!items.length) return; selecting = !selecting; selected.clear(); draw(); };
   $('.s-cancel').onclick = () => { selecting = false; selected.clear(); draw(); };
-  $('.s-all').onclick = () => { const f = items.filter(e => !query || e.name.toLowerCase().includes(query)); const all = f.every(e => selected.has(e.id)); f.forEach(e => all ? selected.delete(e.id) : selected.add(e.id)); draw(); };
+  $('.s-all').onclick = () => { const f = items.filter(matches); const all = f.every(e => selected.has(e.id)); f.forEach(e => all ? selected.delete(e.id) : selected.add(e.id)); draw(); };
+  $('.s-del').onclick = async () => {
+    const n = selected.size;
+    if (!n) return;
+    const one = n === 1 ? items.find(e => selected.has(e.id)) : null;
+    const ok = await confirmBox(t('deleteTitle'), one ? t('deleteText', { name: `<b>${esc(one.name)}</b>` }) : t('deleteManyText', { n }), { ok: t('delete'), danger: true });
+    if (!ok) return;
+    await vault.removeMany([...selected]);
+    items = items.filter(e => !selected.has(e.id));
+    selected.clear(); selecting = false;
+    toast(n === 1 ? t('deleted') : t('deletedN', { n })); draw();
+  };
   $('.s-exp').onclick = async () => { if (await exportFlow(items.filter(e => selected.has(e.id)))) { selecting = false; selected.clear(); draw(); } };
   $('.fab').onclick = home;
   $('.v-more').onclick = () => {
@@ -591,7 +631,7 @@ async function vaultScreen() {
       items = await vault.list();
       busy(false);
       draw();
-      alertBox(t('import'), t('importDone', { a: r.added, s: r.skipped }));
+      alertBox(t('import'), t('importDone', { a: r.added, s: r.skipped }) + (r.renamed ? '<br><br>' + t('importRenamed', { r: r.renamed }) : ''));
     } catch (e) {
       busy(false);
       alertBox(t('import'), e.message === 'password' ? t('importBadPwd') : t('importBadFile'));

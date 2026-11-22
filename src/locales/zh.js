@@ -92,5 +92,13 @@ export default {
   proNothing: "此 Google 账号下未找到专业版购买记录。",
   t6Title: "或者使用密码短语",
   t6Text: "几个容易记住的单词，例如 Sun-Piano-Garden42：选择单词数量、语言和分隔符。",
-  rateApp: "为应用评分"
+  rateApp: "为应用评分",
+  nameTaken: "此名称已被使用，请换一个。",
+  deleteN: "删除（{n}）",
+  deleteManyText: "{n} 个密码将被永久删除。",
+  deletedN: "已删除 {n} 个密码",
+  importRenamed: "{r} 个密码的名称已存在：已自动加上编号，例如“Gmail (2)”。",
+  splashTag: "您的密码，在手机上生成并保存",
+  searchName: "按名称搜索",
+  nFound: "{n} 个结果"
 };
