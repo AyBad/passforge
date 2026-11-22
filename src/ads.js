@@ -2,12 +2,15 @@ import { Capacitor } from '@capacitor/core';
 import { t } from './i18n.js';
 import { settings } from './store.js';
 
-// Google's official TEST ad units: they never generate revenue and are safe to click.
-// Replace with your own AdMob IDs before publishing.
+// Real AdMob ids come from the GitHub variables ADMOB_BANNER_ID / ADMOB_INTERSTITIAL_ID (see README).
+// Without them: Google's official TEST ad units (no revenue, safe to click).
+const env = import.meta.env;
+const REAL = !!(env.VITE_ADMOB_BANNER && env.VITE_ADMOB_INTERSTITIAL);
 const TEST = {
-  banner: 'ca-app-pub-3940256099942544/6300978111',
-  interstitial: 'ca-app-pub-3940256099942544/1033173712'
+  banner: env.VITE_ADMOB_BANNER || 'ca-app-pub-3940256099942544/6300978111',
+  interstitial: env.VITE_ADMOB_INTERSTITIAL || 'ca-app-pub-3940256099942544/1033173712'
 };
+export const realAds = REAL;
 
 const native = Capacitor.isNativePlatform();
 let admob = null, ready = false, bannerShown = false, wanted = false, bannerH = 0, modalHidden = false;
@@ -26,7 +29,12 @@ async function initAds() {
   if (!native || ready) return;
   try {
     admob = (await import('@capacitor-community/admob')).AdMob;
-    await admob.initialize({ initializeForTesting: true });
+    await admob.initialize({ initializeForTesting: !REAL });
+    // GDPR (EU): Google's consent form, shown only when it is required and not answered yet
+    try {
+      const c = await admob.requestConsentInfo();
+      if (c.isConsentFormAvailable && c.status === 'REQUIRED') await admob.showConsentForm();
+    } catch (e) { console.warn('consent', e); }
     admob.addListener('bannerAdSizeChanged', (info) => { if (info && info.height) bannerH = info.height; if (wanted) setAdSpace((bannerH || 60) + 4); });
     ready = true;
   } catch (e) { console.warn('ads', e); }
@@ -39,7 +47,7 @@ export async function showBanner() {
   if (native) {
     await initAds(); if (!ready || !wanted) return;
     try {
-      if (!bannerShown) await admob.showBanner({ adId: TEST.banner, adSize: 'ADAPTIVE_BANNER', position: 'BOTTOM_CENTER', margin: 0, isTesting: true });
+      if (!bannerShown) await admob.showBanner({ adId: TEST.banner, adSize: 'ADAPTIVE_BANNER', position: 'BOTTOM_CENTER', margin: 0, isTesting: !REAL });
       else if (!anyModal()) await admob.resumeBanner();
       bannerShown = true;
       if (!wanted) { await admob.hideBanner(); return; }
@@ -70,7 +78,7 @@ export async function removeAdsForPro() {
 let interReady = false, saves = 0, lastInter = 0;
 export async function prepareInterstitial() {
   if (!native || !(await adsAllowed())) return;
-  try { await initAds(); if (!ready) return; await admob.prepareInterstitial({ adId: TEST.interstitial, isTesting: true }); interReady = true; } catch (e) { interReady = false; }
+  try { await initAds(); if (!ready) return; await admob.prepareInterstitial({ adId: TEST.interstitial, isTesting: !REAL }); interReady = true; } catch (e) { interReady = false; }
 }
 
 /** full-screen ad after a password is saved: every 2nd save, at most once every 90 s */

@@ -39,6 +39,7 @@ export const ICON = {
   search: P('<circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/>'),
   share: P('<circle cx="18" cy="5" r="2.5"/><circle cx="6" cy="12" r="2.5"/><circle cx="18" cy="19" r="2.5"/><path d="M8.2 10.8l7.6-4.4M8.2 13.2l7.6 4.4"/>'),
   select: P('<rect x="3" y="3" width="18" height="18" rx="3"/><path d="M8 12l3 3 5-6"/>'),
+  finger: P('<path d="M12 11v3a8 8 0 0 1-1.5 4.6M8.5 7.5A5 5 0 0 1 17 11v2.5M7 11a5 5 0 0 1 .6-2.4M17 16.5a14 14 0 0 1-.8 3M4.5 9A8 8 0 0 1 19.6 8M4 13.5V12M8 12v2a12 12 0 0 1-1.6 6M15 13.5v.5a11 11 0 0 1-2 6.3"/>'),
   wand: P('<path d="M4 20L16 8M14 4v2M19 9h2M18 4l-1.5 1.5M10 2v2M20 14h2"/>')
 };
 
@@ -91,21 +92,21 @@ export function busy(on, text = '') {
 /* ---- PIN pad ----
  * mode 'create': the user types 4 to 6 digits, presses OK, then confirms them. Resolves with the PIN or null.
  * mode 'verify': check(pin) → true | false. Resolves with the PIN or null. */
-export function pinPad({ mode = 'verify', title, sub = '', length = 0, check, lockedFor, onForgot }) {
+export function pinPad({ mode = 'verify', title, sub = '', length = 0, check, lockedFor, onForgot, bio }) {
   return new Promise(resolve => {
     const el = document.createElement('div');
     el.className = 'pinpad';
-    const keys = ['1', '2', '3', '4', '5', '6', '7', '8', '9', 'x', '0', 'ok'];
+    const keys = ['1', '2', '3', '4', '5', '6', '7', '8', '9', 'x', '0', bio && length ? 'bio' : 'ok'];
     el.innerHTML = `<button class="icon-btn pp-close" aria-label="${t('cancel')}">${ICON.close}</button>
       <div class="pp-top"><div class="pp-ic">${ICON.lock}</div><h2 class="pp-title"></h2><p class="pp-sub"></p>
       <div class="pp-dots"></div><p class="pp-err"></p></div>
-      <div class="pp-keys">${keys.map(k => `<button class="pp-k ${k === 'x' || k === 'ok' ? 'fn' : ''}" data-k="${k}">${k === 'x' ? '⌫' : k === 'ok' ? 'OK' : k}</button>`).join('')}</div>
+      <div class="pp-keys">${keys.map(k => `<button class="pp-k ${k === 'x' || k === 'ok' || k === 'bio' ? 'fn' : ''}" data-k="${k}" ${k === 'bio' ? `aria-label="${t('bioUse')}"` : ''}>${k === 'x' ? '⌫' : k === 'ok' ? 'OK' : k === 'bio' ? ICON.finger : k}</button>`).join('')}</div>
       ${onForgot ? `<button class="link pp-forgot">${t('forgotPin')}</button>` : ''}`;
     document.body.appendChild(el);
     let pin = '', first = null, wait = null;
     const max = mode === 'create' ? 6 : (length || 6);
     const title_ = $('.pp-title', el), sub_ = $('.pp-sub', el), dots = $('.pp-dots', el), err = $('.pp-err', el);
-    const okBtn = $('[data-k="ok"]', el);
+    const okBtn = $('[data-k="ok"]', el) || document.createElement('button');
     const setTitle = () => { title_.textContent = first ? t('pinConfirm') : title; sub_.textContent = first ? '' : sub; };
     const draw = () => {
       const n = mode === 'create' ? Math.max(4, pin.length) : max;
@@ -145,6 +146,7 @@ export function pinPad({ mode = 'verify', title, sub = '', length = 0, check, lo
       if (el.classList.contains('waiting') || el.classList.contains('checking')) return;
       if (k === 'x') { pin = pin.slice(0, -1); draw(); return; }
       if (k === 'ok') { submit(); return; }
+      if (k === 'bio') { runBio(); return; }
       if (pin.length >= max) return;
       pin += k; err.textContent = ''; draw();
       if (mode === 'verify' && length && pin.length === length) submit();
@@ -154,7 +156,17 @@ export function pinPad({ mode = 'verify', title, sub = '', length = 0, check, lo
     $$('.pp-k', el).forEach(b => b.onclick = () => press(b.dataset.k));
     $('.pp-close', el).onclick = () => done(null);
     if (onForgot) $('.pp-forgot', el).onclick = () => { done(null); onForgot(); };
-    setTitle(); draw(); showWait();
+    // fingerprint / face: asked at once, the keypad stays available as a fallback
+    const runBio = async () => {
+      if (!bio || (await lockedFor?.())) return;
+      el.classList.add('checking');
+      let p = null;
+      try { p = await bio(); } catch (e) { err.textContent = e.message || ''; }
+      el.classList.remove('checking');
+      if (!el.isConnected || !p) return;
+      if (await check(p)) done(p); else shake(t('pinWrong'));
+    };
+    setTitle(); draw(); showWait().then(w => { if (!w && bio) setTimeout(runBio, 250); });
   });
 }
 

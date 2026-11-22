@@ -3,10 +3,11 @@ import { App } from '@capacitor/app';
 import * as store from './store.js';
 import * as vault from './vault.js';
 import { t, setLang, lang, LANGS, phoneLang } from './i18n.js';
-import { generate, strength, entropy, defaultOptions, PRESETS, ALL_SPECIALS, DEFAULT_SPECIALS, LOCALE_CHARS } from './gen.js';
+import { generate, strength, entropy, defaultOptions, PRESETS, ALL_SPECIALS, DEFAULT_SPECIALS, LOCALE_CHARS, PHRASE_PRESETS, SEPARATORS, WORD_LANGS, loadWords, wordLangFor, phrase, strengthFromBits } from './gen.js';
 import { $, $$, esc, ICON, modal, confirmBox, alertBox, toast, busy, pinPad, slides } from './ui.js';
 import { showBanner, hideBanner, removeAdsForPro, afterSave, prepareInterstitial } from './ads.js';
-import { native, copy, saveFile, shareFile, pickFile, inExternal } from './device.js';
+import * as billing from './billing.js';
+import { native, copy, saveFile, shareFile, pickFile, inExternal, bio } from './device.js';
 
 const VERSION = __APP_VERSION__;
 let S;                 // settings
@@ -23,12 +24,20 @@ async function start() {
   await setLang(S.lang || phoneLang());
   applyTheme();
   await vault.init();
-  opt = Object.assign(defaultOptions(), S.gen || {});
+  const d0 = defaultOptions();
+  opt = Object.assign(d0, S.gen || {});
+  opt.phrase = Object.assign(defaultOptions().phrase, (S.gen && S.gen.phrase) || {});
   setupSystem();
   if ('serviceWorker' in navigator && !native && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(() => { });
   if (!S.onboarded) await onboarding();
   home();
   prepareInterstitial();
+  // Google Play says whether this account owns Pro (reinstall, new phone, refund)
+  billing.owned().then(async (o) => {
+    if (o === null || o === S.pro) return;
+    S = await store.saveSettings({ pro: o });
+    if (o) removeAdsForPro(); else if (screen === 'home') showBanner();
+  });
 }
 
 function applyTheme() {
@@ -73,7 +82,7 @@ async function onboarding() {
   await slides(welcomeSlides(), { finish: t('start'), skip: false });
   await profileDialog(true);
   const create = await confirmBox(t('pinNowTitle'), t('pinNowText'), { ok: t('pinCreate'), cancel: t('later') });
-  if (create) await createPin();
+  if (create && await createPin()) { await offerBio(lastPin); lastPin = null; }
   S = await store.saveSettings({ onboarded: true });
 }
 
@@ -100,14 +109,44 @@ async function createPin() {
   busy(true, t('securing'));
   try { await vault.setPin(pin); await vault.unlock(pin); } finally { busy(false); }
   toast(t('pinSet'));
+  lastPin = pin;
   return true;
 }
+let lastPin = null; // only between the PIN creation and the fingerprint offer, then forgotten
 
-async function askPin(title = t('pinEnter')) {
+const bioTexts = (sub) => ({ title: t('bioTitle'), subtitle: sub || t('bioSub'), cancel: t('usePin') });
+
+/** fingerprint / face callback for the PIN pad (null when not set up) */
+async function bioFor(sub) {
+  const st = await bio.status();
+  if (!st.enrolled) return null;
+  return async () => {
+    try { return await bio.unlock(bioTexts(sub)); }
+    catch { toast(t('bioInvalid')); return null; }
+  };
+}
+
+async function askPin(title = t('pinEnter'), check = (p) => vault.unlock(p)) {
   return pinPad({
     mode: 'verify', title, length: await vault.pinLength(),
-    check: (p) => vault.unlock(p), lockedFor: vault.lockedFor, onForgot: forgotPin
+    check, lockedFor: vault.lockedFor, onForgot: forgotPin, bio: await bioFor()
   });
+}
+
+/** asks the PIN (or fingerprint) without opening the list; resolves with the PIN or null */
+async function verifyPin(title = t('pinEnter')) {
+  return pinPad({ mode: 'verify', title, length: await vault.pinLength(), check: vault.checkPin, lockedFor: vault.lockedFor, bio: await bioFor() });
+}
+
+/** proposes fingerprint / face after a PIN is created (when the phone has it) */
+async function offerBio(pin) {
+  const st = await bio.status();
+  if (!st.available || st.enrolled) return;
+  if (!(await confirmBox(t('bioOfferTitle'), t('bioOfferText'), { ok: t('bioEnable'), cancel: t('later') }))) return;
+  if (!pin) pin = await verifyPin();
+  if (!pin) return;
+  try { if (await bio.enroll(pin, bioTexts(t('bioEnrollSub')))) toast(t('bioOn')); }
+  catch (e) { alertBox(t('bioUnlock'), e.message); }
 }
 
 async function forgotPin() {
@@ -117,11 +156,13 @@ async function forgotPin() {
 
 /** opens the password list: PIN required */
 async function openVault() {
-  if (vault.isUnlocked()) return vaultScreen();
+  // the PIN (or fingerprint / face) is asked every time the list is opened
+  vault.lock();
   if (!(await vault.hasPin())) {
     const create = await confirmBox(t('pinNeededTitle'), t('pinNeededText'), { ok: t('pinCreate'), cancel: t('later') });
     if (!create) return;
     if (!(await createPin())) return;
+    await offerBio(lastPin); lastPin = null;
     return vaultScreen();
   }
   if (await askPin()) vaultScreen();
@@ -129,6 +170,7 @@ async function openVault() {
 
 /* ================= layout ================= */
 function shell({ title, back, actions = '', body, cls = '' }) {
+  if (screen !== 'vault' && screen !== 'regen') vault.lock();
   app().innerHTML = `<header class="bar">
       <button class="icon-btn nav" aria-label="menu">${back ? ICON.back : ICON.menu}</button>
       <h1>${title}</h1><div class="bar-act">${actions}</div></header>
@@ -143,7 +185,6 @@ function openDrawer() {
   const p = S.profile || {};
   const name = [p.first, p.last].filter(Boolean).join(' ');
   const initials = ((p.first || '')[0] || '') + ((p.last || '')[0] || '');
-  const themeIc = S.theme === 'dark' ? ICON.moon : S.theme === 'light' ? ICON.sun : ICON.phone;
   d.innerHTML = `<div class="dr-panel">
       <div class="dr-head"><div class="avatar">${initials ? esc(initials.toUpperCase()) : ICON.user}</div>
         <div><b>${name ? t('hello', { name: esc(p.first || name) }) : t('appName')}</b><small>${S.pro ? '<em class="pro-tag">PRO</em>' : t('freeVersion')}</small></div></div>
@@ -152,8 +193,6 @@ function openDrawer() {
         <button data-a="vault" class="${screen === 'vault' ? 'on' : ''}">${ICON.key}<span>${t('myPasswords')}</span></button>
         <hr>
         <button data-a="settings">${ICON.gear}<span>${t('settings')}</span></button>
-        <button data-a="lang">${ICON.globe}<span>${t('language')}</span><em class="dr-val">${LANGS[lang()]}</em></button>
-        <button data-a="theme">${themeIc}<span>${t('theme')}</span><em class="dr-val">${t('theme_' + S.theme)}</em></button>
         <button data-a="pro">${ICON.star}<span>${t('proMode')}</span>${S.pro ? '<em class="pro-tag">✓</em>' : '<em class="pro-tag">PRO</em>'}</button>
         <hr>
         <button data-a="tuto">${ICON.book}<span>${t('tutorial')}</span></button>
@@ -163,23 +202,23 @@ function openDrawer() {
   d.onclick = (e) => { if (e.target === d) closeDrawer(); };
   $$('nav button', d).forEach(b => b.onclick = async () => {
     const a = b.dataset.a;
-    if (a === 'theme') { await cycleTheme(); openDrawer(); return; }
     closeDrawer();
-    ({ home, vault: openVault, settings: settingsScreen, lang: languageDialog, pro: proScreen, tuto: tutorial, about: aboutScreen })[a]();
+    ({ home, vault: openVault, settings: settingsScreen, pro: proScreen, tuto: tutorial, about: aboutScreen })[a]();
   });
 }
 function closeDrawer() { const d = $('.drawer'); if (d) d.classList.remove('open'); }
 
-async function cycleTheme() {
-  const order = ['system', 'light', 'dark'];
-  S = await store.saveSettings({ theme: order[(order.indexOf(S.theme) + 1) % 3] });
-  applyTheme();
-}
 
 /* ================= generator ================= */
 const KINDS = [['lower', 'a-z'], ['upper', 'A-Z'], ['digits', '0-9'], ['special', '#$&']];
+const isPhrase = () => opt.mode === 'passphrase';
 
 function matchPreset() {
+  if (isPhrase()) {
+    const ph = opt.phrase;
+    for (const [k, p] of Object.entries(PHRASE_PRESETS)) if (Object.keys(p).every(f => ph[f] === p[f])) return k;
+    return 'custom';
+  }
   for (const [k, p] of Object.entries(PRESETS)) {
     if (Object.keys(p).every(f => opt[f] === p[f]) && (!opt.special || opt.specials === DEFAULT_SPECIALS) && !opt.localeChars && !opt.noAmbiguous) return k;
   }
@@ -188,30 +227,51 @@ function matchPreset() {
 let saveOptTimer;
 function persistOpt() { clearTimeout(saveOptTimer); saveOptTimer = setTimeout(() => store.saveSettings({ gen: opt }), 400); }
 
+const sepLabel = (c) => c === ' ' ? t('sepSpace') : c;
+
 function home() {
   screen = editTarget ? 'regen' : 'home';
   const hasLocale = !!LOCALE_CHARS[lang()];
   if (!hasLocale) opt.localeChars = false;
+  const ph = opt.phrase;
   shell({
     title: editTarget ? t('regenerate') : t('generator'),
-    back: editTarget ? () => { editTarget = null; results = []; openVault(); } : null,
+    back: editTarget ? () => { editTarget = null; results = []; vault.isUnlocked() ? vaultScreen() : openVault(); } : null,
     actions: editTarget ? '' : `<button class="icon-btn vault-btn" aria-label="${t('myPasswords')}">${ICON.key}</button>`,
     body: `
       ${editTarget ? `<div class="notice">${ICON.edit}<span>${t('regenFor', { name: `<b>${esc(editTarget.name)}</b>` })}</span></div>` : ''}
+      <div class="seg modes">${['password', 'passphrase'].map(m => `<button data-m="${m}">${m === 'password' ? ICON.key : ICON.book}<span>${t('mode_' + m)}</span></button>`).join('')}</div>
       <section class="card">
         <h3>${t('level')}</h3>
         <div class="seg presets">${['weak', 'medium', 'strong', 'custom'].map(k => `<button data-p="${k}" class="lvl-${k}">${t(k)}</button>`).join('')}</div>
-        <div class="len-row"><h3>${t('length')}</h3>
-          <div class="stepper"><button class="icon-btn sm len-m">${ICON.minus}</button><b class="len-v"></b><button class="icon-btn sm len-p">${ICON.plus}</button></div></div>
-        <input type="range" class="len" min="4" max="64" step="1">
-        <h3>${t('characters')}</h3>
-        <div class="kinds">${KINDS.map(([k, ex]) => `<button class="kind" data-k="${k}"><span class="kc">${ICON.check}</span><span><b>${t('k_' + k)}</b><small dir="ltr">${ex}</small></span></button>`).join('')}</div>
-        <div class="specials">
-          <div class="sp-head"><h3>${t('specialList')}</h3><span><button class="link sp-all">${t('all')}</button> · <button class="link sp-def">${t('default')}</button></span></div>
-          <div class="sp-grid" dir="ltr">${[...ALL_SPECIALS].map(c => `<button class="sp" data-c="${esc(c)}">${esc(c)}</button>`).join('')}</div>
+
+        <div class="pw-opts">
+          <div class="len-row"><h3>${t('length')}</h3>
+            <div class="stepper"><button class="icon-btn sm len-m">${ICON.minus}</button><b class="len-v"></b><button class="icon-btn sm len-p">${ICON.plus}</button></div></div>
+          <input type="range" class="len" min="4" max="64" step="1">
+          <h3>${t('characters')}</h3>
+          <div class="kinds">${KINDS.map(([k, ex]) => `<button class="kind" data-k="${k}"><span class="kc">${ICON.check}</span><span><b>${t('k_' + k)}</b><small dir="ltr">${ex}</small></span></button>`).join('')}</div>
+          <div class="specials">
+            <div class="sp-head"><h3>${t('specialList')}</h3><span><button class="link sp-all">${t('all')}</button> · <button class="link sp-def">${t('default')}</button></span></div>
+            <div class="sp-grid" dir="ltr">${[...ALL_SPECIALS].map(c => `<button class="sp" data-c="${esc(c)}">${esc(c)}</button>`).join('')}</div>
+          </div>
+          <label class="switch-row"><span><b>${t('noAmbiguous')}</b><small>${t('noAmbiguousHint')}</small></span><input type="checkbox" class="amb"><i></i></label>
+          ${hasLocale ? `<label class="switch-row"><span><b>${t('localeChars')}</b><small>${t('localeCharsHint')} <span dir="auto">${esc([...LOCALE_CHARS[lang()]].slice(0, 6).join(' '))}…</span></small></span><input type="checkbox" class="loc"><i></i></label>` : ''}
         </div>
-        <label class="switch-row"><span><b>${t('noAmbiguous')}</b><small>${t('noAmbiguousHint')}</small></span><input type="checkbox" class="amb"><i></i></label>
-        ${hasLocale ? `<label class="switch-row"><span><b>${t('localeChars')}</b><small>${t('localeCharsHint')} <span dir="auto">${esc([...LOCALE_CHARS[lang()]].slice(0, 6).join(' '))}…</span></small></span><input type="checkbox" class="loc"><i></i></label>` : ''}
+
+        <div class="ph-opts">
+          <div class="len-row"><h3>${t('words')}</h3>
+            <div class="stepper"><button class="icon-btn sm w-m">${ICON.minus}</button><b class="w-v"></b><button class="icon-btn sm w-p">${ICON.plus}</button></div></div>
+          <input type="range" class="wn" min="3" max="10" step="1">
+          <h3>${t('wordLang')}</h3>
+          <div class="chips wl">${Object.entries(WORD_LANGS).map(([k, v]) => `<button class="chip" data-l="${k}">${v}</button>`).join('')}</div>
+          <h3>${t('separator')}</h3>
+          <div class="chips sep" dir="ltr">${SEPARATORS.map(c => `<button class="chip mono" data-s="${esc(c)}">${esc(sepLabel(c))}</button>`).join('')}</div>
+          <label class="switch-row"><span><b>${t('capitalize')}</b><small>${t('capitalizeHint')}</small></span><input type="checkbox" class="cap"><i></i></label>
+          <label class="switch-row"><span><b>${t('addNumber')}</b><small>${t('addNumberHint')}</small></span><input type="checkbox" class="num"><i></i></label>
+          <label class="switch-row"><span><b>${t('addSymbol')}</b><small>${t('addSymbolHint')}</small></span><input type="checkbox" class="sym"><i></i></label>
+        </div>
+
         ${editTarget ? '' : `<div class="len-row"><h3>${t('howMany')}</h3><div class="seg counts">${[1, 2, 3, 4, 5].map(n => `<button data-n="${n}">${n}</button>`).join('')}</div></div>`}
       </section>
       <button class="btn primary big gen">${ICON.refresh}<span>${t('generate')}</span></button>
@@ -220,24 +280,39 @@ function home() {
   if (!editTarget) $('.vault-btn').onclick = openVault;
 
   const sync = () => {
-    opt.preset = matchPreset();
-    $$('.presets button').forEach(b => b.classList.toggle('on', b.dataset.p === opt.preset));
+    const P = isPhrase();
+    $$('.modes button').forEach(b => b.classList.toggle('on', b.dataset.m === opt.mode));
+    $('.pw-opts').classList.toggle('hide', P);
+    $('.ph-opts').classList.toggle('hide', !P);
+    const pre = matchPreset();
+    if (P) ph.preset = pre; else opt.preset = pre;
+    $$('.presets button').forEach(b => b.classList.toggle('on', b.dataset.p === pre));
     $('.len').value = opt.length; $('.len-v').textContent = opt.length;
     $$('.kind').forEach(b => b.classList.toggle('on', !!opt[b.dataset.k]));
     $('.specials').classList.toggle('hide', !opt.special);
     $$('.sp').forEach(b => b.classList.toggle('on', opt.specials.includes(b.dataset.c)));
     $('.amb').checked = opt.noAmbiguous;
     if ($('.loc')) $('.loc').checked = opt.localeChars;
+    $('.wn').value = ph.words; $('.w-v').textContent = ph.words;
+    const wl = wordLangFor(lang(), ph.wordLang);
+    $$('.wl .chip').forEach(b => b.classList.toggle('on', b.dataset.l === wl));
+    $$('.sep .chip').forEach(b => b.classList.toggle('on', b.dataset.s === ph.separator));
+    $('.cap').checked = ph.capitalize; $('.num').checked = ph.addNumber; $('.sym').checked = ph.addSymbol;
     $$('.counts button').forEach(b => b.classList.toggle('on', +b.dataset.n === opt.count));
     persistOpt();
   };
   const changed = () => { sync(); run(); };
+  $$('.modes button').forEach(b => b.onclick = () => { if (opt.mode === b.dataset.m) return; opt.mode = b.dataset.m; changed(); });
   $$('.presets button').forEach(b => b.onclick = () => {
     const p = b.dataset.p;
-    if (p !== 'custom') Object.assign(opt, PRESETS[p], { specials: DEFAULT_SPECIALS, localeChars: false, noAmbiguous: false });
-    else { $('.kinds').scrollIntoView({ behavior: 'smooth', block: 'center' }); }
+    if (isPhrase()) {
+      if (p !== 'custom') Object.assign(ph, PHRASE_PRESETS[p]);
+      else $('.ph-opts').scrollIntoView({ behavior: 'smooth', block: 'center' });
+    } else if (p !== 'custom') Object.assign(opt, PRESETS[p], { specials: DEFAULT_SPECIALS, localeChars: false, noAmbiguous: false });
+    else $('.kinds').scrollIntoView({ behavior: 'smooth', block: 'center' });
     changed();
   });
+  // password options
   $('.len').oninput = (e) => { opt.length = +e.target.value; sync(); };
   $('.len').onchange = run;
   $('.len-m').onclick = () => { opt.length = Math.max(4, opt.length - 1); changed(); };
@@ -262,32 +337,55 @@ function home() {
   $('.sp-def').onclick = () => { opt.specials = DEFAULT_SPECIALS; changed(); };
   $('.amb').onchange = (e) => { opt.noAmbiguous = e.target.checked; changed(); };
   if ($('.loc')) $('.loc').onchange = (e) => { opt.localeChars = e.target.checked; changed(); };
+  // passphrase options
+  $('.wn').oninput = (e) => { ph.words = +e.target.value; sync(); };
+  $('.wn').onchange = run;
+  $('.w-m').onclick = () => { ph.words = Math.max(3, ph.words - 1); changed(); };
+  $('.w-p').onclick = () => { ph.words = Math.min(10, ph.words + 1); changed(); };
+  $$('.wl .chip').forEach(b => b.onclick = () => { ph.wordLang = b.dataset.l; changed(); });
+  $$('.sep .chip').forEach(b => b.onclick = () => { ph.separator = b.dataset.s; changed(); });
+  $('.cap').onchange = (e) => { ph.capitalize = e.target.checked; changed(); };
+  $('.num').onchange = (e) => { ph.addNumber = e.target.checked; changed(); };
+  $('.sym').onchange = (e) => { ph.addSymbol = e.target.checked; changed(); };
+
   $$('.counts button').forEach(b => b.onclick = () => { opt.count = +b.dataset.n; changed(); });
-  $('.gen').onclick = () => { run(); $('.results').scrollIntoView({ behavior: 'smooth', block: 'start' }); };
+  $('.gen').onclick = async () => { await run(); $('.results').scrollIntoView({ behavior: 'smooth', block: 'start' }); };
 
   sync();
   if (results.length) drawResults(); else run();
   if (editTarget) hideBanner(); else showBanner();
 }
 
-function run() {
+/** one new value → { value, bits } (bits only known for passphrases) */
+async function makeOne() {
+  if (!isPhrase()) return { value: generate(opt, lang()), bits: null };
+  const words = await loadWords(wordLangFor(lang(), opt.phrase.wordLang));
+  return phrase({ ...opt.phrase, specials: opt.specials || DEFAULT_SPECIALS }, words);
+}
+
+let runId = 0;
+async function run() {
+  const id = ++runId;
   const n = editTarget ? 1 : opt.count;
-  results = Array.from({ length: n }, () => generate(opt, lang()));
+  const out = [];
+  for (let i = 0; i < n; i++) out.push(await makeOne());
+  if (id !== runId) return; // a newer generation started meanwhile
+  results = out;
   drawResults();
 }
 
-function meter(pw) {
-  const s = strength(pw), bits = entropy(pw);
+function meter(pw, known) {
+  const bits = known ?? entropy(pw), s = known != null ? strengthFromBits(known) : strength(pw);
   return `<div class="meter m-${s}"><div class="m-bar"><i></i><i></i><i></i></div><span>${t(s)} · ${bits} bits</span></div>`;
 }
 
 function drawResults() {
   const box = $('.results');
   if (!box) return;
-  box.innerHTML = `<h3 class="res-title">${results.length > 1 ? t('chooseOne') : t('result')}</h3>` + results.map((pw, i) => `
+  box.innerHTML = `<h3 class="res-title">${results.length > 1 ? t('chooseOne') : t('result')}</h3>` + results.map((r, i) => `
     <div class="res card" data-i="${i}">
-      <textarea class="pw-field" rows="1" dir="ltr" spellcheck="false" autocapitalize="off" autocomplete="off" aria-label="${t('password')}">${esc(pw)}</textarea>
-      <div class="res-meter">${meter(pw)}</div>
+      <textarea class="pw-field" rows="1" dir="ltr" spellcheck="false" autocapitalize="off" autocomplete="off" aria-label="${t('password')}">${esc(r.value)}</textarea>
+      <div class="res-meter">${meter(r.value, r.bits)}</div>
       <div class="res-act">
         <button class="icon-btn r-new" title="${t('regenerate')}">${ICON.refresh}</button>
         <button class="btn ghost r-copy">${ICON.copy}<span>${t('copy')}</span></button>
@@ -299,17 +397,19 @@ function drawResults() {
     const i = +card.dataset.i, ta = $('.pw-field', card);
     const fit = () => { ta.style.height = 'auto'; ta.style.height = ta.scrollHeight + 'px'; };
     requestAnimationFrame(fit);
-    ta.oninput = () => { ta.value = ta.value.replace(/[\r\n]/g, ''); results[i] = ta.value; $('.res-meter', card).innerHTML = meter(ta.value); fit(); };
-    $('.r-new', card).onclick = () => { results[i] = generate(opt, lang()); ta.value = results[i]; ta.oninput(); };
-    $('.r-copy', card).onclick = async () => { if (!results[i]) return; await copy(results[i], S.clipClear); toast(S.clipClear ? t('copiedClear', { s: S.clipClear }) : t('copied')); };
-    $('.r-save', card).onclick = () => results[i] && (editTarget ? replaceSaved(results[i]) : saveDialog(results[i]));
+    const show = () => { $('.res-meter', card).innerHTML = meter(results[i].value, results[i].bits); fit(); };
+    // a hand-edited value: the strength is estimated from its characters
+    ta.oninput = () => { ta.value = ta.value.replace(/[\r\n]/g, ''); results[i] = { value: ta.value, bits: null }; show(); };
+    $('.r-new', card).onclick = async () => { results[i] = await makeOne(); ta.value = results[i].value; show(); };
+    $('.r-copy', card).onclick = async () => { const v = results[i].value; if (!v) return; await copy(v, S.clipClear); toast(S.clipClear ? t('copiedClear', { s: S.clipClear }) : t('copied')); };
+    $('.r-save', card).onclick = () => { const v = results[i].value; if (v) editTarget ? replaceSaved(v) : saveDialog(v, results[i].bits); };
   });
 }
 
-function saveDialog(value) {
+function saveDialog(value, bits = null) {
   const m = modal(`<h2>${t('savePw')}</h2>
     <label class="field"><span>${t('pwName')}</span><input class="nm" maxlength="80" placeholder="${t('pwNameHint')}" autocomplete="off"></label>
-    <div class="preview" dir="ltr">${esc(value)}</div>${meter(value)}
+    <div class="preview" dir="ltr">${esc(value)}</div>${meter(value, bits)}
     <div class="actions"><button class="btn ghost c">${t('cancel')}</button><button class="btn primary o">${t('save')}</button></div>`);
   const nm = $('.nm', m.el);
   setTimeout(() => nm.focus(), 150);
@@ -532,6 +632,7 @@ async function settingsScreen() {
   screen = 'settings';
   hideBanner();
   const pin = await vault.hasPin();
+  const bst = await bio.status();
   const p = S.profile || {};
   shell({
     title: t('settings'), back: home,
@@ -543,6 +644,8 @@ async function settingsScreen() {
       <h3 class="sec">${t('security')}</h3>
       <section class="card rows">
         ${pin ? `<button class="row r-pin-c">${ICON.lock}<span><b>${t('pinChange')}</b><small>${t('pinActive')}</small></span></button>
+                 ${bst.available || bst.enrolled ? `<label class="row switch-row r-bio">${ICON.finger}<span><b>${t('bioUnlock')}</b><small>${t('bioHint')}</small></span><input type="checkbox" class="bio-sw" ${bst.enrolled ? 'checked' : ''}><i></i></label>`
+        : bst.noneEnrolled ? `<div class="row">${ICON.finger}<span><b>${t('bioUnlock')}</b><small>${t('bioNone')}</small></span></div>` : ''}
                  <button class="row r-pin-d">${ICON.unlock}<span><b>${t('pinRemove')}</b><small>${t('pinRemoveHint')}</small></span></button>`
       : `<button class="row r-pin-s">${ICON.lock}<span><b>${t('pinCreate')}</b><small class="warn">${t('pinMissing')}</small></span></button>`}
         <div class="row">${ICON.copy}<span><b>${t('clipClear')}</b><small>${t('clipClearHint')}</small></span>
@@ -565,22 +668,38 @@ async function settingsScreen() {
   $('.r-prof').onclick = async () => { await profileDialog(); settingsScreen(); };
   if (pin) {
     $('.r-pin-c').onclick = async () => {
-      const old = await pinPad({ mode: 'verify', title: t('pinOld'), length: await vault.pinLength(), check: vault.checkPin, lockedFor: vault.lockedFor });
+      const old = await verifyPin(t('pinOld'));
       if (!old) return;
       const nw = await pinPad({ mode: 'create', title: t('pinNew'), sub: t('pinCreateSub') });
       if (!nw) return;
       busy(true, t('securing'));
       try { await vault.changePin(old, nw); } finally { busy(false); }
       vault.lock(); toast(t('pinChanged'));
+      // the fingerprint keeps the PIN: store the new one
+      if ((await bio.status()).enrolled) {
+        let ok = false;
+        try { ok = await bio.enroll(nw, bioTexts(t('bioEnrollSub'))); } catch { }
+        if (!ok) { await bio.remove(); toast(t('bioOff')); }
+        settingsScreen();
+      }
+    };
+    if ($('.bio-sw')) $('.bio-sw').onchange = async (e) => {
+      if (e.target.checked) {
+        e.target.checked = false;
+        const pinv = await verifyPin();
+        if (!pinv) return;
+        try { if (await bio.enroll(pinv, bioTexts(t('bioEnrollSub')))) { e.target.checked = true; toast(t('bioOn')); } }
+        catch (err) { alertBox(t('bioUnlock'), err.message); }
+      } else { await bio.remove(); toast(t('bioOff')); }
     };
     $('.r-pin-d').onclick = async () => {
       if (!(await confirmBox(t('pinRemove'), t('pinRemoveText'), { ok: t('pinRemove'), danger: true }))) return;
-      const old = await pinPad({ mode: 'verify', title: t('pinEnter'), length: await vault.pinLength(), check: vault.checkPin, lockedFor: vault.lockedFor });
+      const old = await verifyPin();
       if (!old) return;
-      await vault.removePin(old); vault.lock();
+      await vault.removePin(old); vault.lock(); await bio.remove();
       toast(t('pinRemoved')); settingsScreen();
     };
-  } else $('.r-pin-s').onclick = async () => { if (await createPin()) { vault.lock(); settingsScreen(); } };
+  } else $('.r-pin-s').onclick = async () => { if (await createPin()) { await offerBio(lastPin); lastPin = null; vault.lock(); settingsScreen(); } };
   $('.clip').onchange = async (e) => { S = await store.saveSettings({ clipClear: +e.target.value }); };
   $('.r-lang').onclick = languageDialog;
   $$('.theme button').forEach(b => b.onclick = async () => { S = await store.saveSettings({ theme: b.dataset.t }); applyTheme(); $$('.theme button').forEach(x => x.classList.toggle('on', x === b)); });
@@ -593,11 +712,12 @@ async function resetApp(forgot) {
   if (!forgot) {
     if (!(await confirmBox(t('resetApp'), t('resetText'), { ok: t('resetApp'), danger: true }))) return;
     if (await vault.hasPin()) {
-      const ok = await pinPad({ mode: 'verify', title: t('pinEnter'), length: await vault.pinLength(), check: vault.checkPin, lockedFor: vault.lockedFor });
+      const ok = await verifyPin();
       if (!ok) return;
     }
   }
   const keepLang = S.lang, keepTheme = S.theme, keepPro = S.pro;
+  await bio.remove();
   await store.clearAll();
   store.resetCache();
   vault.lock();
@@ -621,28 +741,37 @@ function languageDialog() {
 }
 
 /* ================= Pro ================= */
-function proScreen() {
+async function proScreen() {
   screen = 'pro';
   hideBanner();
+  const prod = await billing.storeProduct(); // null → simulated purchase (APK from GitHub, iPhone)
+  const price = prod ? prod.price : '2,99 €';
   shell({
     title: t('proMode'), back: home,
     body: `<div class="pro-hero"><div class="pro-badge">${ICON.star}</div><h2>PassForge Pro</h2><p>${t('proText')}</p></div>
       <section class="card"><ul class="ticks">
         <li>${ICON.check}${t('proB1')}</li><li>${ICON.check}${t('proB2')}</li><li>${ICON.check}${t('proB3')}</li></ul></section>
       ${S.pro
-        ? `<div class="notice ok">${ICON.check}<span>${t('proActive')}</span></div><button class="btn ghost big p-off">${t('proDisable')}</button>`
-        : `<button class="btn primary big p-buy">${t('proBuy', { price: '2,99 €' })}</button><button class="link center p-restore">${t('proRestore')}</button>`}
-      <p class="muted small center">${t('proTestNote')}</p>`
+        ? `<div class="notice ok">${ICON.check}<span>${t('proActive')}</span></div>${prod ? '' : `<button class="btn ghost big p-off">${t('proDisable')}</button>`}`
+        : `<button class="btn primary big p-buy">${t('proBuy', { price: esc(price) })}</button><button class="link center p-restore">${t('proRestore')}</button>`}
+      ${prod ? '' : `<p class="muted small center">${t('proTestNote')}</p>`}`
   });
-  const buy = async () => {
-    if (!(await confirmBox(t('proBuyTitle'), t('proBuyText'), { ok: t('proConfirm') }))) return;
-    S = await store.saveSettings({ pro: true });
-    await removeAdsForPro();
-    toast(t('proThanks'));
-    proScreen();
+  const activate = async () => { S = await store.saveSettings({ pro: true }); await removeAdsForPro(); toast(t('proThanks')); proScreen(); };
+  if ($('.p-buy')) $('.p-buy').onclick = async () => {
+    if (!prod) {
+      if (await confirmBox(t('proBuyTitle'), t('proBuyText'), { ok: t('proConfirm') })) activate();
+      return;
+    }
+    try { if (await billing.buy()) activate(); }
+    catch (e) { alertBox(t('proMode'), t('proError') + (e.message ? `<br><small>${esc(e.message)}</small>` : '')); }
   };
-  if ($('.p-buy')) $('.p-buy').onclick = buy;
-  if ($('.p-restore')) $('.p-restore').onclick = () => alertBox(t('proRestore'), t('proRestoreText'));
+  if ($('.p-restore')) $('.p-restore').onclick = async () => {
+    if (!prod) return alertBox(t('proRestore'), t('proRestoreText'));
+    busy(true);
+    const o = await billing.owned();
+    busy(false);
+    if (o) activate(); else alertBox(t('proRestore'), t('proNothing'));
+  };
   if ($('.p-off')) $('.p-off').onclick = async () => { S = await store.saveSettings({ pro: false }); toast(t('proOff')); proScreen(); };
 }
 
@@ -652,6 +781,7 @@ async function tutorial() {
   await slides([
     { icon: ICON.wand, title: t('t1Title'), text: t('t1Text') },
     { icon: ICON.refresh, title: t('t2Title'), text: t('t2Text'), tone: 'green' },
+    { icon: ICON.book, title: t('t6Title'), text: t('t6Text'), tone: 'orange' },
     { icon: ICON.save, title: t('t3Title'), text: t('t3Text'), tone: 'violet' },
     { icon: ICON.key, title: t('t4Title'), text: t('t4Text') },
     { icon: ICON.download, title: t('t5Title'), text: t('t5Text'), tone: 'orange' },

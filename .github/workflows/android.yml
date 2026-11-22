@@ -19,10 +19,29 @@ jobs:
           distribution: temurin
           java-version: 21
       - run: npm ci
+      # real AdMob ids / Pro product: GitHub → Settings → Secrets and variables → Actions → Variables
       - run: npm run build
+        env:
+          VITE_ADMOB_BANNER: ${{ vars.ADMOB_BANNER_ID }}
+          VITE_ADMOB_INTERSTITIAL: ${{ vars.ADMOB_INTERSTITIAL_ID }}
+          VITE_PRO_PRODUCT: ${{ vars.PRO_PRODUCT_ID }}
+      # real upload key for Google Play (secrets); without them the test key of the repository is used
+      - name: Upload key
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+        run: |
+          if [ -n "$KEYSTORE_BASE64" ]; then
+            echo "$KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/upload.keystore"
+            echo "KEYSTORE_FILE=$RUNNER_TEMP/upload.keystore" >> "$GITHUB_ENV"
+          fi
       - run: npx cap sync android
       - name: Build APK
         working-directory: android
+        env:
+          ADMOB_APP_ID: ${{ vars.ADMOB_APP_ID }}
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
         run: |
           chmod +x gradlew
           ./gradlew assembleDebug bundleRelease --no-daemon --stacktrace

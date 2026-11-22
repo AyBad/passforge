@@ -27,7 +27,10 @@ export const PRESETS = {
 };
 
 export function defaultOptions() {
-  return { preset: 'strong', ...PRESETS.strong, specials: DEFAULT_SPECIALS, count: 1, noAmbiguous: false, localeChars: false };
+  return {
+    mode: 'password', preset: 'strong', ...PRESETS.strong, specials: DEFAULT_SPECIALS, count: 1, noAmbiguous: false, localeChars: false,
+    phrase: { preset: 'medium', ...PHRASE_PRESETS.medium, separator: '-', wordLang: null }
+  };
 }
 
 /** uniform random integer in [0, n) — rejection sampling avoids modulo bias */
@@ -86,7 +89,47 @@ export function entropy(pw) {
 }
 
 /** weak < 50 bits ≤ medium < 75 bits ≤ strong */
-export function strength(pw) {
-  const b = entropy(pw);
-  return b >= 75 ? 'strong' : b >= 50 ? 'medium' : 'weak';
+export function strength(pw) { return strengthFromBits(entropy(pw)); }
+
+/* ---------------- passphrases ---------------- */
+// BIP-39 word lists (2048 common words each); accents are removed so that every website accepts them
+export const WORD_LANGS = { en: 'English', fr: 'Français', es: 'Español', it: 'Italiano', pt: 'Português' };
+const WL = {
+  en: () => import('@scure/bip39/wordlists/english.js'),
+  fr: () => import('@scure/bip39/wordlists/french.js'),
+  es: () => import('@scure/bip39/wordlists/spanish.js'),
+  it: () => import('@scure/bip39/wordlists/italian.js'),
+  pt: () => import('@scure/bip39/wordlists/portuguese.js')
+};
+const lists = {};
+export async function loadWords(l) {
+  if (!WL[l]) l = 'en';
+  if (!lists[l]) {
+    const raw = (await WL[l]()).wordlist;
+    lists[l] = [...new Set(raw.map(w => w.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase()))].filter(w => /^[a-z]{3,9}$/.test(w));
+  }
+  return lists[l];
 }
+export const wordLangFor = (uiLang, chosen) => chosen && WL[chosen] ? chosen : (WL[uiLang] ? uiLang : 'en');
+
+export const PHRASE_PRESETS = {
+  weak: { words: 3, capitalize: false, addNumber: false, addSymbol: false },
+  medium: { words: 5, capitalize: true, addNumber: true, addSymbol: false },
+  strong: { words: 7, capitalize: true, addNumber: true, addSymbol: true }
+};
+export const SEPARATORS = ['-', '.', '_', ' ', '/', '+'];
+
+/** words → { value, bits } (bits = real entropy of the choice) */
+export function phrase(o, words) {
+  const n = Math.max(2, o.words);
+  const w = Array.from({ length: n }, () => pick(words));
+  const out = w.map(x => o.capitalize ? x[0].toUpperCase() + x.slice(1) : x);
+  let bits = n * Math.log2(words.length);
+  if (o.addNumber) { const i = randInt(n); out[i] += String(randInt(100)); bits += Math.log2(100) + Math.log2(n); }
+  if (o.addSymbol) {
+    const sp = [...(o.specials || DEFAULT_SPECIALS)].filter(c => c !== o.separator);
+    if (sp.length) { const i = randInt(n); out[i] += pick(sp); bits += Math.log2(sp.length) + Math.log2(n); }
+  }
+  return { value: out.join(o.separator ?? '-'), bits: Math.round(bits) };
+}
+export const strengthFromBits = (b) => b >= 75 ? 'strong' : b >= 50 ? 'medium' : 'weak';

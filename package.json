@@ -15,7 +15,9 @@
     "@capacitor/core": "^7.6.10",
     "@capacitor/filesystem": "^7.1.9",
     "@capacitor/preferences": "^7.0.4",
-    "@capacitor/share": "^7.0.4"
+    "@capacitor/share": "^7.0.4",
+    "@capgo/native-purchases": "^7.19.3",
+    "@scure/bip39": "^2.4.0"
   },
   "devDependencies": {
     "@capacitor/android": "^7.6.10",

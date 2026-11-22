@@ -72,3 +72,24 @@ export function pickFile() {
     input.click();
   }));
 }
+
+/* ---- fingerprint / face (Android, strong biometrics) ---- */
+const BioVault = registerPlugin('BioVault');
+export const bio = {
+  /** { available, enrolled, noneEnrolled } — all false outside Android */
+  async status() {
+    if (!native) return { available: false, enrolled: false, noneEnrolled: false };
+    try { return await BioVault.status(); } catch { return { available: false, enrolled: false, noneEnrolled: false }; }
+  },
+  /** stores the PIN behind the biometric check; resolves true, or false when cancelled */
+  async enroll(pin, texts) {
+    try { await outside(() => BioVault.enroll({ secret: pin, ...texts })); return true; }
+    catch (e) { if (e.code === 'cancel') return false; throw e; }
+  },
+  /** returns the PIN, or null (cancelled / failed). Throws {code:'invalidated'} when the phone's biometrics changed */
+  async unlock(texts) {
+    try { return (await outside(() => BioVault.unlock(texts))).secret; }
+    catch (e) { if (e.code === 'invalidated') throw e; return null; }
+  },
+  async remove() { if (native) { try { await BioVault.remove(); } catch { } } }
+};
