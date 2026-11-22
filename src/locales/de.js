@@ -1,0 +1,65 @@
+export default {
+  appName: 'PassForge', ok: 'OK', cancel: 'Abbrechen', save: 'Speichern', later: 'Später', next: 'Weiter', skip: 'Überspringen', start: 'Los geht’s', finish: 'Fertig',
+  more: 'Mehr', all: 'Alle', default: 'Standard', never: 'Nie', notSet: 'Nicht angegeben', key: 'Schlüssel',
+
+  w1Title: 'Willkommen bei PassForge', w1Text: 'Erstelle im Handumdrehen starke Passwörter, speichere sie und finde sie wieder, wann immer du sie brauchst.',
+  w2Title: '100 % auf deinem Handy', w2Text: 'Deine Passwörter werden verschlüsselt und nur auf diesem Gerät gespeichert. Sie werden nie ins Internet, an einen Server oder in die Cloud gesendet. Kein Konto nötig.',
+  w3Title: 'Geschützt durch deine PIN', w3Text: 'Die Passwortliste öffnet sich nur mit deiner PIN. Screenshots sind gesperrt und die App sperrt sich, sobald du sie verlässt.',
+  w4Title: 'Neues Handy?', w4Text: 'Denke daran, deine Passwörter (verschlüsselte Datei) zu exportieren, bevor du das Gerät wechselst, und importiere sie dann in PassForge auf dem neuen. Ohne Export gingen sie verloren.',
+
+  profile: 'Profil', profileText: 'Nur dein Vor- und Nachname. Sie bleiben auf diesem Handy.', firstName: 'Vorname', lastName: 'Nachname',
+  hello: 'Hallo {name}', freeVersion: 'Kostenlose Version',
+
+  pinNowTitle: 'PIN erstellen?', pinNowText: 'Die PIN schützt deine Passwortliste. Du kannst sie auch später in den Einstellungen erstellen.',
+  pinCreate: 'PIN erstellen', pinCreateTitle: 'Wähle eine PIN', pinCreateSub: '4 bis 6 Ziffern, dann OK tippen', pinConfirm: 'PIN bestätigen',
+  pinMismatch: 'Die beiden PINs sind verschieden. Bitte erneut.', pinEnter: 'PIN eingeben', pinWrong: 'Falsche PIN', pinWait: 'Zu viele Versuche. Erneut in {s} s',
+  pinSet: 'PIN gespeichert', securing: 'Wird gesichert…', pinNeededTitle: 'PIN erforderlich', pinNeededText: 'Um deine Passwörter anzusehen, erstelle zuerst eine PIN. Sie wird bei jedem Öffnen der Liste abgefragt.',
+  forgotPin: 'PIN vergessen?', forgotText: 'Zu deiner Sicherheit kann die PIN nicht wiederhergestellt werden: Deine Passwörter sind damit verschlüsselt. Die einzige Lösung ist, die App zurückzusetzen (alle Passwörter werden gelöscht). Mit einem Export kannst du sie danach importieren.',
+  pinOld: 'Aktuelle PIN', pinNew: 'Neue PIN', pinChange: 'PIN ändern', pinChanged: 'PIN geändert', pinActive: 'Die PIN schützt die Liste',
+  pinRemove: 'PIN entfernen', pinRemoveHint: 'Nicht empfohlen', pinRemoveText: 'Ohne PIN kannst du die Liste erst wieder öffnen, wenn du eine neue erstellst. Fortfahren?', pinRemoved: 'PIN entfernt',
+  pinMissing: 'Keine PIN: Liste kann nicht geöffnet werden', autoLocked: 'Liste nach Inaktivität gesperrt', locked: 'Liste gesperrt', lockNow: 'Jetzt sperren',
+
+  generator: 'Generator', myPasswords: 'Meine Passwörter', settings: 'Einstellungen', language: 'Sprache', theme: 'Design', proMode: 'Pro-Modus', tutorial: 'Anleitung', about: 'Über',
+  theme_system: 'System', theme_light: 'Hell', theme_dark: 'Dunkel',
+
+  level: 'Stufe', weak: 'Schwach', medium: 'Mittel', strong: 'Stark', custom: 'Eigene', length: 'Länge', characters: 'Zeichen',
+  k_lower: 'Kleinbuchst.', k_upper: 'Großbuchst.', k_digits: 'Ziffern', k_special: 'Sonderzeichen',
+  specialList: 'Erlaubte Sonderzeichen', noAmbiguous: 'Mehrdeutige Zeichen vermeiden', noAmbiguousHint: 'Ohne I, l, 1, O, 0… leichter abzutippen',
+  localeChars: 'Buchstaben meiner Sprache', localeCharsHint: 'Viele Websites lehnen sie ab:', howMany: 'Anzahl', generate: 'Erzeugen',
+  oneKind: 'Behalte mindestens eine Zeichenart', oneSpecial: 'Behalte mindestens ein Sonderzeichen',
+  result: 'Dein Passwort', chooseOne: 'Wähle das zu speichernde aus', password: 'Passwort', copy: 'Kopieren', regenerate: 'Neu erzeugen', replace: 'Ersetzen',
+  editHint: 'Du kannst das Passwort vor dem Speichern direkt bearbeiten.',
+  copied: 'Kopiert', copiedClear: 'Kopiert · wird in {s} s aus der Zwischenablage gelöscht',
+  savePw: 'Passwort speichern', pwName: 'Name', pwNameHint: 'z. B. Gmail, Bank, WLAN…', saved: 'Passwort gespeichert',
+  firstSavedNoPin: 'Erstelle eine PIN, um deine Passwörter anzusehen',
+  regenFor: 'Neues Passwort für {name}', replaceTitle: 'Passwort ersetzen?', replaceText: 'Das alte Passwort von {name} wird endgültig ersetzt.', updated: 'Passwort geändert',
+
+  search: 'Suchen', select: 'Auswählen', selectAll: 'Alle auswählen', nSelected: '{n} ausgewählt', exportN: 'Exportieren ({n})', newPw: 'Neues Passwort', show: 'Anzeigen',
+  emptyTitle: 'Keine Passwörter', emptyText: 'Erzeuge dein erstes Passwort oder importiere einen PassForge-Export.', noMatch: 'Keine Treffer',
+  editManual: 'Manuell bearbeiten', editRegen: 'Durch Erzeugen ändern', delete: 'Löschen', deleteTitle: 'Löschen?', deleteText: '{name} wird endgültig gelöscht.', deleted: 'Gelöscht',
+  chooseExport: 'Wähle die zu exportierenden Passwörter',
+
+  export: 'Exportieren', import: 'Importieren', exportText: '{n} Passwort/Passwörter werden in einer verschlüsselten Datei gespeichert. Wähle ein Passwort für diese Datei: Es wird beim Import abgefragt. Ohne es ist die Datei unlesbar.',
+  exportPwd: 'Dateipasswort', exportPwd2: 'Passwort bestätigen', exportPwdShort: 'Mindestens 6 Zeichen', exportPwdMismatch: 'Die Passwörter stimmen nicht überein',
+  encrypting: 'Verschlüsseln…', decrypting: 'Entschlüsseln…', exportReady: 'Export bereit', exportWhere: 'Wohin mit der Datei?', saveDevice: 'Auf dem Gerät speichern', shareFile: 'Senden / teilen', exported: 'Datei gespeichert',
+  importText: 'Diese Datei enthält {n} Passwort/Passwörter. Gib das beim Export gewählte Passwort ein.', importBadFile: 'Diese Datei ist kein PassForge-Export.', importBadPwd: 'Falsches Dateipasswort.', importDone: '{a} importiert, {s} bereits vorhandene übersprungen.',
+  exportHint: 'Verschlüsselte Datei für einen Handywechsel', data: 'Daten', resetApp: 'App zurücksetzen', resetHint: 'Löscht alle Passwörter', resetText: 'Alle Passwörter, dein Profil und deine PIN werden endgültig von diesem Handy gelöscht.',
+
+  security: 'Sicherheit', clipClear: 'Zwischenablage leeren', clipClearHint: 'Nach dem Kopieren', appearance: 'Darstellung', languageHint: 'Die Oberfläche wechselt die Sprache. Passwörter bleiben in lateinischen Zeichen (überall akzeptiert), außer du aktivierst „Buchstaben meiner Sprache“.', phoneLang: 'Sprache des Handys',
+
+  proGet: 'Pro werden', proActive: 'Pro-Modus aktiv: keine Werbung', proHint: 'Entfernt die Werbung', proText: 'Nutze PassForge ganz ohne Werbung.',
+  proB1: 'Keine Banner, keine Vollbildwerbung', proB2: 'Einmalkauf, kein Abo', proB3: 'Unterstütze die Entwicklung der App',
+  proBuy: 'Kaufen – {price}', proRestore: 'Kauf wiederherstellen', proRestoreText: 'Testversion: Die Wiederherstellung wird bei Veröffentlichung mit dem Google-Play-Konto verknüpft.', proDisable: 'Pro-Modus ausschalten (Test)',
+  proBuyTitle: 'Testkauf', proBuyText: 'Dies ist eine Testversion: Es erfolgt keine Zahlung.', proConfirm: 'Bestätigen', proThanks: 'Danke! Die Werbung ist entfernt.', proOff: 'Pro-Modus ausgeschaltet', proTestNote: 'Testversion: simulierte Zahlung.',
+
+  t1Title: 'Wähle den Typ', t1Text: 'Schwach, mittel, stark oder eigene: Länge, Klein- und Großbuchstaben, Ziffern und erlaubte Sonderzeichen.',
+  t2Title: 'Bis zu 5 Passwörter erzeugen', t2Text: 'Wähle die Anzahl, tippe auf Erzeugen und erzeuge so oft neu, wie du willst.',
+  t3Title: 'Kopieren, ändern, speichern', t3Text: 'Bearbeite das Passwort bei Bedarf direkt, kopiere es und speichere das gewählte mit einem Namen.',
+  t4Title: 'Mit deiner PIN ansehen', t4Text: 'In „Meine Passwörter“: anzeigen, kopieren, ändern (manuell oder durch Erzeugen) und löschen.',
+  t5Title: 'Exportieren und importieren', t5Text: 'Wähle die Passwörter für eine verschlüsselte Datei aus und importiere sie auf einem anderen Handy.',
+
+  version: 'Version', aboutText: 'PassForge erzeugt starke Passwörter und bewahrt sie sicher auf – nur auf deinem Handy.',
+  about1: 'Funktioniert ohne Internet und ohne Konto', about2: 'AES-256- und RSA-2048-Verschlüsselung', about3: 'Kryptografische Zufallserzeugung', about4: 'Liste per PIN geschützt, Screenshots gesperrt',
+  privacy: 'Datenschutz', privacyText: 'PassForge erhebt, sendet und teilt keine Passwörter oder persönlichen Daten. Alles bleibt verschlüsselt auf dem Gerät. Die Internetverbindung dient nur der Werbung in der kostenlosen Version (von Google AdMob, das nie Zugriff auf deine Passwörter hat).',
+  ad: 'Werbung', testBanner: 'Test-Werbebanner', testInter: 'Test-Vollbildwerbung'
+};

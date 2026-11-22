@@ -1,0 +1,65 @@
+export default {
+  appName: 'PassForge', ok: '确定', cancel: '取消', save: '保存', later: '稍后', next: '下一步', skip: '跳过', start: '开始使用', finish: '完成',
+  more: '更多', all: '全部', default: '默认', never: '从不', notSet: '未填写', key: '密钥',
+
+  w1Title: '欢迎使用 PassForge', w1Text: '瞬间生成高强度密码，保存下来，随时找到。',
+  w2Title: '100% 保存在手机上', w2Text: '您的密码经过加密，只保存在这台设备上。绝不会发送到互联网、服务器或云端。无需账号。',
+  w3Title: '由您的 PIN 码保护', w3Text: '密码列表只有输入 PIN 码才能打开。禁止截屏，离开应用后会自动锁定。',
+  w4Title: '要换手机吗？', w4Text: '更换设备前请记得导出密码（加密文件），然后在新手机的 PassForge 中导入。如果不导出，密码将会丢失。',
+
+  profile: '个人资料', profileText: '只需名字和姓氏，仅保存在这台手机上。', firstName: '名字', lastName: '姓氏',
+  hello: '你好，{name}', freeVersion: '免费版',
+
+  pinNowTitle: '现在创建 PIN 码？', pinNowText: 'PIN 码用于保护密码列表。您也可以稍后在设置中创建。',
+  pinCreate: '创建 PIN 码', pinCreateTitle: '设置 PIN 码', pinCreateSub: '4 到 6 位数字，然后点击 OK', pinConfirm: '确认 PIN 码',
+  pinMismatch: '两次输入的 PIN 码不一致，请重试。', pinEnter: '请输入 PIN 码', pinWrong: 'PIN 码错误', pinWait: '尝试次数过多，请在 {s} 秒后重试',
+  pinSet: 'PIN 码已保存', securing: '正在加密保护…', pinNeededTitle: '需要 PIN 码', pinNeededText: '查看密码前请先创建 PIN 码。每次打开列表时都需要输入。',
+  forgotPin: '忘记 PIN 码？', forgotText: '为了您的安全，PIN 码无法找回：密码是用它加密的。唯一的办法是重置应用（所有密码将被删除）。如果您有导出文件，之后可以再导入。',
+  pinOld: '当前 PIN 码', pinNew: '新 PIN 码', pinChange: '修改 PIN 码', pinChanged: 'PIN 码已修改', pinActive: 'PIN 码正在保护列表',
+  pinRemove: '删除 PIN 码', pinRemoveHint: '不建议', pinRemoveText: '没有 PIN 码，在创建新的 PIN 码之前将无法打开列表。继续吗？', pinRemoved: 'PIN 码已删除',
+  pinMissing: '未设置 PIN 码：无法打开列表', autoLocked: '长时间未操作，列表已锁定', locked: '列表已锁定', lockNow: '立即锁定',
+
+  generator: '生成器', myPasswords: '我的密码', settings: '设置', language: '语言', theme: '主题', proMode: '专业版', tutorial: '教程', about: '关于',
+  theme_system: '跟随系统', theme_light: '浅色', theme_dark: '深色',
+
+  level: '强度', weak: '弱', medium: '中', strong: '强', custom: '自定义', length: '长度', characters: '字符',
+  k_lower: '小写字母', k_upper: '大写字母', k_digits: '数字', k_special: '特殊字符',
+  specialList: '允许的特殊字符', noAmbiguous: '避免易混淆字符', noAmbiguousHint: '不含 I、l、1、O、0…更易抄写',
+  localeChars: '我的语言的字符', localeCharsHint: '很多网站不接受：', howMany: '数量', generate: '生成',
+  oneKind: '请至少保留一种字符类型', oneSpecial: '请至少保留一个特殊字符',
+  result: '您的密码', chooseOne: '选择要保存的密码', password: '密码', copy: '复制', regenerate: '重新生成', replace: '替换',
+  editHint: '保存前可以直接修改密码。',
+  copied: '已复制', copiedClear: '已复制 · {s} 秒后从剪贴板清除',
+  savePw: '保存密码', pwName: '名称', pwNameHint: '例如：Gmail、银行、Wi-Fi…', saved: '密码已保存',
+  firstSavedNoPin: '请记得创建 PIN 码以查看密码',
+  regenFor: '为 {name} 生成新密码', replaceTitle: '替换密码？', replaceText: '{name} 的旧密码将被永久替换。', updated: '密码已修改',
+
+  search: '搜索', select: '选择', selectAll: '全选', nSelected: '已选 {n} 个', exportN: '导出（{n}）', newPw: '新密码', show: '显示',
+  emptyTitle: '暂无密码', emptyText: '生成第一个密码，或导入 PassForge 导出文件。', noMatch: '无结果',
+  editManual: '手动修改', editRegen: '重新生成修改', delete: '删除', deleteTitle: '删除？', deleteText: '{name} 将被永久删除。', deleted: '已删除',
+  chooseExport: '选择要导出的密码',
+
+  export: '导出', import: '导入', exportText: '{n} 个密码将保存到一个加密文件中。请为此文件设置密码：导入时需要输入。没有它，文件无法读取。',
+  exportPwd: '文件密码', exportPwd2: '确认密码', exportPwdShort: '至少 6 个字符', exportPwdMismatch: '两次密码不一致',
+  encrypting: '正在加密…', decrypting: '正在解密…', exportReady: '导出文件已就绪', exportWhere: '要把文件放在哪里？', saveDevice: '保存到设备', shareFile: '发送 / 分享', exported: '文件已保存',
+  importText: '此文件包含 {n} 个密码。请输入导出时设置的密码。', importBadFile: '此文件不是 PassForge 导出文件。', importBadPwd: '文件密码错误。', importDone: '已导入 {a} 个密码，跳过 {s} 个已存在的密码。',
+  exportHint: '加密文件，用于更换手机', data: '数据', resetApp: '重置应用', resetHint: '删除所有密码', resetText: '您的所有密码、个人资料和 PIN 码都将从这台手机上永久删除。',
+
+  security: '安全', clipClear: '清除剪贴板', clipClearHint: '复制之后', appearance: '外观', languageHint: '更改界面语言。密码仍使用拉丁字符（各处通用），除非您开启“我的语言的字符”。', phoneLang: '手机语言',
+
+  proGet: '升级专业版', proActive: '专业版已开启：无广告', proHint: '移除广告', proText: '无广告畅享 PassForge。',
+  proB1: '无横幅广告，无全屏广告', proB2: '一次性购买，无需订阅', proB3: '支持应用的开发',
+  proBuy: '购买 – {price}', proRestore: '恢复购买', proRestoreText: '测试版：正式发布后将关联 Google Play 账号恢复购买。', proDisable: '关闭专业版（测试）',
+  proBuyTitle: '测试购买', proBuyText: '这是测试版：不会产生任何付款。', proConfirm: '确认', proThanks: '谢谢！广告已移除。', proOff: '专业版已关闭', proTestNote: '测试版：模拟付款。',
+
+  t1Title: '选择类型', t1Text: '弱、中、强或自定义：长度、小写、大写、数字以及允许的特殊字符列表。',
+  t2Title: '一次最多生成 5 个密码', t2Text: '选择数量，点击生成，想重新生成多少次都可以。',
+  t3Title: '复制、修改、保存', t3Text: '需要时直接修改密码，复制它，然后给选中的密码起个名字保存。',
+  t4Title: '用 PIN 码查看', t4Text: '在“我的密码”中：显示、复制、修改（手动或重新生成）和删除。',
+  t5Title: '导出与导入', t5Text: '选择要导出的密码生成加密文件，然后在另一部手机上导入。',
+
+  version: '版本', aboutText: 'PassForge 生成高强度密码，并安全地只保存在您的手机上。',
+  about1: '无需联网，无需账号', about2: 'AES-256 和 RSA-2048 加密', about3: '密码学安全的随机生成', about4: 'PIN 码保护列表，禁止截屏',
+  privacy: '隐私', privacyText: 'PassForge 不收集、不发送、不分享任何密码或个人数据。所有内容都加密保存在设备上。联网仅用于显示免费版的广告（由 Google AdMob 提供，它永远无法访问您的密码）。',
+  ad: '广告', testBanner: '测试横幅广告', testInter: '测试全屏广告'
+};

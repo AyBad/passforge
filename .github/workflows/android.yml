@@ -1,0 +1,49 @@
+name: Build Android APK
+on:
+  push:
+    branches: [android]
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: 21
+      - run: npm ci
+      - run: npm run build
+      - run: npx cap sync android
+      - name: Build APK
+        working-directory: android
+        run: |
+          chmod +x gradlew
+          ./gradlew assembleDebug bundleRelease --no-daemon --stacktrace
+      - run: |
+          cp android/app/build/outputs/apk/debug/app-debug.apk PassForge.apk
+          cp android/app/build/outputs/bundle/release/app-release.aab PassForge.aab
+      - uses: actions/upload-artifact@v4
+        with:
+          name: PassForge-apk
+          path: |
+            PassForge.apk
+            PassForge.aab
+      - name: Publish release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: android-b${{ github.run_number }}
+          name: PassForge Android – build ${{ github.run_number }}
+          body: |
+            APK de test PassForge (build ${{ github.run_number }}, commit ${{ github.sha }}).
+            Lien permanent vers la dernière version : https://github.com/${{ github.repository }}/releases/latest/download/PassForge.apk
+          files: |
+            PassForge.apk
+            PassForge.aab
+          make_latest: true

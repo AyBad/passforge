@@ -1,0 +1,65 @@
+export default {
+  appName: 'PassForge', ok: 'Aceptar', cancel: 'Cancelar', save: 'Guardar', later: 'Más tarde', next: 'Siguiente', skip: 'Omitir', start: 'Empezar', finish: 'Terminar',
+  more: 'Más', all: 'Todo', default: 'Por defecto', never: 'Nunca', notSet: 'Sin indicar', key: 'Clave',
+
+  w1Title: 'Bienvenido a PassForge', w1Text: 'Crea contraseñas seguras en un instante, guárdalas y encuéntralas cuando las necesites.',
+  w2Title: '100 % en tu teléfono', w2Text: 'Tus contraseñas se cifran y se guardan solo en este dispositivo. Nunca se envían a Internet, a un servidor ni a la nube. No necesitas cuenta.',
+  w3Title: 'Protegidas por tu PIN', w3Text: 'La lista de contraseñas solo se abre con tu PIN. Las capturas de pantalla están bloqueadas y la app se bloquea al salir.',
+  w4Title: '¿Cambias de teléfono?', w4Text: 'Recuerda exportar tus contraseñas (archivo cifrado) antes de cambiar de dispositivo y luego impórtalas en PassForge en el nuevo. Sin exportación se perderían.',
+
+  profile: 'Perfil', profileText: 'Solo tu nombre y apellido. Se quedan en este teléfono.', firstName: 'Nombre', lastName: 'Apellido',
+  hello: 'Hola {name}', freeVersion: 'Versión gratuita',
+
+  pinNowTitle: '¿Crear tu PIN?', pinNowText: 'El PIN protege tu lista de contraseñas. También puedes crearlo más tarde en los ajustes.',
+  pinCreate: 'Crear un PIN', pinCreateTitle: 'Elige un PIN', pinCreateSub: 'De 4 a 6 cifras y pulsa OK', pinConfirm: 'Confirma tu PIN',
+  pinMismatch: 'Los dos PIN son distintos. Inténtalo de nuevo.', pinEnter: 'Introduce tu PIN', pinWrong: 'PIN incorrecto', pinWait: 'Demasiados intentos. Reinténtalo en {s} s',
+  pinSet: 'PIN guardado', securing: 'Protegiendo…', pinNeededTitle: 'PIN obligatorio', pinNeededText: 'Para ver tus contraseñas, crea primero un PIN. Se pedirá cada vez que abras la lista.',
+  forgotPin: '¿Olvidaste el PIN?', forgotText: 'Por tu seguridad, el PIN no se puede recuperar: tus contraseñas están cifradas con él. La única opción es restablecer la app (se borrarán todas las contraseñas). Si tienes una exportación, podrás importarla después.',
+  pinOld: 'PIN actual', pinNew: 'Nuevo PIN', pinChange: 'Cambiar el PIN', pinChanged: 'PIN cambiado', pinActive: 'El PIN protege la lista',
+  pinRemove: 'Eliminar el PIN', pinRemoveHint: 'No recomendado', pinRemoveText: 'Sin PIN no podrás abrir la lista hasta crear uno nuevo. ¿Continuar?', pinRemoved: 'PIN eliminado',
+  pinMissing: 'Sin PIN: no se puede abrir la lista', autoLocked: 'Lista bloqueada por inactividad', locked: 'Lista bloqueada', lockNow: 'Bloquear ahora',
+
+  generator: 'Generador', myPasswords: 'Mis contraseñas', settings: 'Ajustes', language: 'Idioma', theme: 'Tema', proMode: 'Modo Pro', tutorial: 'Tutorial', about: 'Acerca de',
+  theme_system: 'Sistema', theme_light: 'Claro', theme_dark: 'Oscuro',
+
+  level: 'Nivel', weak: 'Débil', medium: 'Media', strong: 'Fuerte', custom: 'Personal', length: 'Longitud', characters: 'Caracteres',
+  k_lower: 'Minúsculas', k_upper: 'Mayúsculas', k_digits: 'Cifras', k_special: 'Especiales',
+  specialList: 'Caracteres especiales permitidos', noAmbiguous: 'Evitar caracteres ambiguos', noAmbiguousHint: 'Sin I, l, 1, O, 0… más fácil de copiar',
+  localeChars: 'Letras de mi idioma', localeCharsHint: 'Muchos sitios las rechazan:', howMany: 'Cantidad', generate: 'Generar',
+  oneKind: 'Mantén al menos un tipo de caracteres', oneSpecial: 'Mantén al menos un carácter especial',
+  result: 'Tu contraseña', chooseOne: 'Elige la que quieres guardar', password: 'Contraseña', copy: 'Copiar', regenerate: 'Regenerar', replace: 'Reemplazar',
+  editHint: 'Puedes modificar la contraseña directamente antes de guardarla.',
+  copied: 'Copiada', copiedClear: 'Copiada · se borrará del portapapeles en {s} s',
+  savePw: 'Guardar la contraseña', pwName: 'Nombre', pwNameHint: 'Ej.: Gmail, Banco, Wi-Fi…', saved: 'Contraseña guardada',
+  firstSavedNoPin: 'Recuerda crear un PIN para ver tus contraseñas',
+  regenFor: 'Nueva contraseña para {name}', replaceTitle: '¿Reemplazar la contraseña?', replaceText: 'La contraseña anterior de {name} se reemplazará definitivamente.', updated: 'Contraseña modificada',
+
+  search: 'Buscar', select: 'Seleccionar', selectAll: 'Seleccionar todo', nSelected: '{n} seleccionada(s)', exportN: 'Exportar ({n})', newPw: 'Nueva contraseña', show: 'Mostrar',
+  emptyTitle: 'Ninguna contraseña', emptyText: 'Genera tu primera contraseña o importa una exportación de PassForge.', noMatch: 'Sin resultados',
+  editManual: 'Modificar a mano', editRegen: 'Modificar generando', delete: 'Eliminar', deleteTitle: '¿Eliminar?', deleteText: '{name} se eliminará definitivamente.', deleted: 'Eliminada',
+  chooseExport: 'Elige las contraseñas que quieres exportar',
+
+  export: 'Exportar', import: 'Importar', exportText: 'Se guardarán {n} contraseña(s) en un archivo cifrado. Elige una contraseña para este archivo: se pedirá al importar. Sin ella el archivo es ilegible.',
+  exportPwd: 'Contraseña del archivo', exportPwd2: 'Confirma la contraseña', exportPwdShort: 'Mínimo 6 caracteres', exportPwdMismatch: 'Las contraseñas no coinciden',
+  encrypting: 'Cifrando…', decrypting: 'Descifrando…', exportReady: 'Exportación lista', exportWhere: '¿Dónde quieres poner el archivo?', saveDevice: 'Guardar en el dispositivo', shareFile: 'Enviar / compartir', exported: 'Archivo guardado',
+  importText: 'Este archivo contiene {n} contraseña(s). Introduce la contraseña elegida al exportar.', importBadFile: 'Este archivo no es una exportación de PassForge.', importBadPwd: 'Contraseña del archivo incorrecta.', importDone: '{a} contraseña(s) importada(s), {s} ya existente(s) omitida(s).',
+  exportHint: 'Archivo cifrado, para cambiar de teléfono', data: 'Datos', resetApp: 'Restablecer la app', resetHint: 'Borra todas las contraseñas', resetText: 'Todas tus contraseñas, tu perfil y tu PIN se borrarán definitivamente de este teléfono.',
+
+  security: 'Seguridad', clipClear: 'Borrar el portapapeles', clipClearHint: 'Después de copiar', appearance: 'Apariencia', languageHint: 'Cambia el idioma de la interfaz. Las contraseñas siguen en caracteres latinos (aceptados en todas partes), salvo si activas «Letras de mi idioma».', phoneLang: 'Idioma del teléfono',
+
+  proGet: 'Pasar a Pro', proActive: 'Modo Pro activo: sin anuncios', proHint: 'Elimina los anuncios', proText: 'Disfruta de PassForge sin ningún anuncio.',
+  proB1: 'Sin banners ni anuncios a pantalla completa', proB2: 'Pago único, sin suscripción', proB3: 'Apoya el desarrollo de la app',
+  proBuy: 'Comprar – {price}', proRestore: 'Restaurar una compra', proRestoreText: 'Versión de prueba: la restauración se vinculará a la cuenta de Google Play al publicarse.', proDisable: 'Desactivar el modo Pro (prueba)',
+  proBuyTitle: 'Compra de prueba', proBuyText: 'Es una versión de prueba: no se realizará ningún pago.', proConfirm: 'Confirmar', proThanks: '¡Gracias! Se han eliminado los anuncios.', proOff: 'Modo Pro desactivado', proTestNote: 'Versión de prueba: pago simulado.',
+
+  t1Title: 'Elige el tipo', t1Text: 'Débil, media, fuerte o personalizada: longitud, minúsculas, mayúsculas, cifras y lista de caracteres especiales permitidos.',
+  t2Title: 'Genera hasta 5 contraseñas', t2Text: 'Elige la cantidad, pulsa Generar y regenera tantas veces como quieras.',
+  t3Title: 'Copia, modifica, guarda', t3Text: 'Modifica la contraseña directamente si hace falta, cópiala y guarda la que te quedes dándole un nombre.',
+  t4Title: 'Consúltalas con tu PIN', t4Text: 'En «Mis contraseñas»: muestra, copia, modifica (a mano o generando) y elimina.',
+  t5Title: 'Exporta e importa', t5Text: 'Selecciona las contraseñas que quieres exportar a un archivo cifrado e impórtalo en otro teléfono.',
+
+  version: 'Versión', aboutText: 'PassForge genera contraseñas seguras y las guarda a salvo, solo en tu teléfono.',
+  about1: 'Funciona sin Internet y sin cuenta', about2: 'Cifrado AES-256 y RSA-2048', about3: 'Generación aleatoria criptográfica', about4: 'Lista protegida con PIN, capturas bloqueadas',
+  privacy: 'Privacidad', privacyText: 'PassForge no recopila, envía ni comparte ninguna contraseña ni dato personal. Todo queda cifrado en el dispositivo. La conexión a Internet solo sirve para mostrar los anuncios de la versión gratuita (de Google AdMob, que nunca tiene acceso a tus contraseñas).',
+  ad: 'Anuncio', testBanner: 'Banner publicitario de prueba', testInter: 'Anuncio de prueba a pantalla completa'
+};
