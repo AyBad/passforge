@@ -7,7 +7,7 @@ import { generate, strength, entropy, defaultOptions, PRESETS, ALL_SPECIALS, DEF
 import { $, $$, esc, ICON, modal, confirmBox, alertBox, toast, busy, pinPad, slides } from './ui.js';
 import { showBanner, hideBanner, removeAdsForPro, afterSave, prepareInterstitial } from './ads.js';
 import * as billing from './billing.js';
-import { startSplash, endSplash } from './splash.js';
+import { endSplash } from './splash.js';
 import { noteFirstUse, maybeAskReview, openStorePage } from './review.js';
 import { native, copy, saveFile, shareFile, pickFile, inExternal, bio } from './device.js';
 
@@ -24,7 +24,6 @@ const app = () => $('#app');
 async function start() {
   S = await store.settings();
   await setLang(S.lang || phoneLang());
-  startSplash(t('splashTag'));
   applyTheme();
   await vault.init();
   const d0 = defaultOptions();
@@ -33,8 +32,8 @@ async function start() {
   setupSystem();
   if ('serviceWorker' in navigator && !native && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(() => { });
   noteFirstUse();
-  if (!S.onboarded) { await endSplash(); await onboarding(); home(); }
-  else { home(); await endSplash(); }
+  if (!S.onboarded) { let first; await endSplash(() => { first = onboarding(); }); await first; home(); }
+  else await endSplash(home);
   prepareInterstitial();
   // Google Play says whether this account owns Pro (reinstall, new phone, refund)
   billing.owned().then(async (o) => {
